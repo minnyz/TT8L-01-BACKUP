@@ -3,13 +3,19 @@ from button import Button
 
 pygame.init()
 
-SCREEN = pygame.display.set_mode((1280, 720), pygame.FULLSCREEN)
+# Loud the click sound
+pygame.mixer.init()
+click_sound =  pygame.mixer.Sound("assets/enterface_click_2.mp3")
+
+# Create the screen and set the title
+SCREEN = pygame.display.set_mode((1280, 720))
 pygame.display.set_caption("Menu")
 
+# for background
 BG = pygame.image.load("assets/Background.png")
 
 def get_font(size): # Returns Press-Start-2P in the desired size
-    return pygame.font.Font("assets/r2d.ttf", size)
+    return pygame.font.Font("assets/cyb3.ttf", size)
 
 def play():
     while True:
@@ -33,6 +39,7 @@ def play():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if PLAY_BACK.checkForInput(PLAY_MOUSE_POS):
+                    click_sound.play()
                     main_menu()
 
         pygame.display.update()
@@ -59,6 +66,7 @@ def options():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
+                    click_sound.play()
                     main_menu()
 
         pygame.display.update()
@@ -69,8 +77,8 @@ def main_menu():
 
         MENU_MOUSE_POS = pygame.mouse.get_pos()
 
-        MENU_TEXT = get_font(100).render("LEGEND OF NEON VEIL", True, "#b68f40")
-        MENU_RECT = MENU_TEXT.get_rect(center=(450, 100))
+        MENU_TEXT = get_font(100).render("NEON VEIL", True, "#b68f40")
+        MENU_RECT = MENU_TEXT.get_rect(center=(300, 100))
 
         PLAY_BUTTON = Button(image=None, pos=(150, 300), 
                             text_input="PLAY", font=get_font(75), base_color="#d7fcd4", hovering_color="yellow")
@@ -91,8 +99,10 @@ def main_menu():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if PLAY_BUTTON.checkForInput(MENU_MOUSE_POS):
+                    click_sound.play()
                     play()
                 if OPTIONS_BUTTON.checkForInput(MENU_MOUSE_POS):
+                    click_sound.play()
                     options()
                 if QUIT_BUTTON.checkForInput(MENU_MOUSE_POS):
                     pygame.quit()
