@@ -93,7 +93,7 @@ platforms.add(Platform(700, 200, 200, 20))
 platforms.add(Platform(1000, 400, 200, 20))
 platforms.add(Platform(1300, 300, 200, 20))
 
-# Sprite group
+# Sprite groups
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 all_sprites.add(*platforms)
