@@ -19,3 +19,15 @@ background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_
 # Set up the display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("World(test)")
+
+# Player class
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((PLAYER_WIDTH, PLAYER_HEIGHT))
+        self.image.fill(PLAYER_COLOR)
+        self.rect = self.image.get_rect()
+        self.rect.x = 100
+        self.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT - 100
+        self.velocity_y = 0
+        self.on_ground = False
