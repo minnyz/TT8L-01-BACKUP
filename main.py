@@ -31,3 +31,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT - 100
         self.velocity_y = 0
         self.on_ground = False
+
+    def update(self, platforms):
+        # Apply gravity
+        self.velocity_y += 0.5
