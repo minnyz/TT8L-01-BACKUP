@@ -35,3 +35,13 @@ class Player(pygame.sprite.Sprite):
     def update(self, platforms):
         # Apply gravity
         self.velocity_y += 0.5
+
+        # Check for player input
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.rect.x -= 5
+        if keys[pygame.K_RIGHT]:
+            self.rect.x += 5
+        if keys[pygame.K_SPACE] and self.on_ground:
+            self.velocity_y = -10
+            self.on_ground = False
