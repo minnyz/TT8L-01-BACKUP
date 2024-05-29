@@ -45,3 +45,28 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_SPACE] and self.on_ground:
             self.velocity_y = -10
             self.on_ground = False
+
+        # Update vertical position
+        self.rect.y += self.velocity_y
+
+        # Check for collisions with platforms
+        self.on_ground = False
+        for platform in platforms:
+            if self.rect.colliderect(platform.rect):
+                # Check if falling
+                if self.velocity_y > 0 and self.rect.bottom > platform.rect.top:
+                    self.rect.bottom = platform.rect.top
+                    self.velocity_y = 0
+                    self.on_ground = True
+
+        # Boundary checks within the world
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > WORLD_WIDTH:
+            self.rect.right = WORLD_WIDTH
+        if self.rect.top < 0:
+            self.rect.top = 0
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.rect.bottom = SCREEN_HEIGHT
+            self.velocity_y = 0
+            self.on_ground = True
