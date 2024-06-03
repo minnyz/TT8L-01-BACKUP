@@ -8,12 +8,15 @@ pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 WORLD_WIDTH, WORLD_HEIGHT = 1600, 600  # Increased width for horizontal scrolling
 PLAYER_WIDTH, PLAYER_HEIGHT = 50, 50
-PLAYER_COLOR = (0, 0, 255)
 BACKGROUND_COLOR = (0, 0, 0)
 
 # Load background image
-background_image = pygame.image.load("images/background1.png")  # Replace with your image file
+background_image = pygame.image.load("images/background1.png")
 background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))
+
+# Load player image
+player_image = pygame.image.load("images/maincharacter.png")
+player_image = pygame.transform.scale(player_image, (PLAYER_WIDTH, PLAYER_HEIGHT))
 
 # Set up the display
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -23,8 +26,7 @@ pygame.display.set_caption("World(test)")
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.Surface((PLAYER_WIDTH, PLAYER_HEIGHT))
-        self.image.fill(PLAYER_COLOR)
+        self.image = player_image
         self.rect = self.image.get_rect()
         self.rect.x = 100
         self.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT - 100
@@ -80,7 +82,7 @@ while running:
             running = False
 
     # Update sprites
-    all_sprites.update([])  # No platforms
+    all_sprites.update([])
 
     # Adjust camera position to follow the player
     camera_x = player.rect.x - SCREEN_WIDTH // 2
