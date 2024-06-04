@@ -64,14 +64,13 @@ def options():
         VIDEO_BUTTON = Button(image=None, pos=(180, 300),
                               text_input="Video", font=get_font_1(75), base_color="White", hovering_color="Yellow")
     
-        KEY_TEXT = get_font_1(75).render("Key Bindings", True, "White")
-        KEY_RECT = KEY_TEXT.get_rect(center=(315, 400))
-        SCREEN.blit(KEY_TEXT, KEY_RECT)
+        KEY_BUTTON = Button(image=None, pos=(318, 400),
+                            text_input="Key Bindings", font=get_font_1(75), base_color="White", hovering_color="Yellow")   
 
         OPTIONS_BACK = Button(image=None, pos=(180, 500), 
                             text_input="Back", font=get_font_1(75), base_color="White", hovering_color="Red")
         
-        for button in [AUDIO_BUTTON, OPTIONS_BACK, VIDEO_BUTTON]:    
+        for button in [AUDIO_BUTTON, OPTIONS_BACK, VIDEO_BUTTON, KEY_BUTTON]:    
             button.changeColor(OPTIONS_MOUSE_POS)
             button.update(SCREEN)
 
@@ -89,6 +88,10 @@ def options():
                 if VIDEO_BUTTON.checkForInput(OPTIONS_MOUSE_POS):
                     click_sound.play()
                     video()
+                if KEY_BUTTON.checkForInput(OPTIONS_MOUSE_POS):
+                    click_sound.play()
+                    key()
+                    
         pygame.display.update()
 
 def audio():
@@ -139,7 +142,32 @@ def video():
                     options()                  
                            
         pygame.display.update()
+
+def key():
+    while True:
         
+        OPTIONS_MOUSE_POS = pygame.mouse.get_pos()
+        
+        SCREEN.blit(BG,(0, 0))
+        
+        OPTIONS_BACK = Button(image=None, pos=(180, 500), 
+                            text_input="Back", font=get_font_1(75), base_color="White", hovering_color="Red")
+        
+        for button in [OPTIONS_BACK]:    
+            button.changeColor(OPTIONS_MOUSE_POS)
+            button.update(SCREEN)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
+                    click_sound.play()
+                    options()                  
+                           
+        pygame.display.update()     
+      
 def main_menu():
     while True:
         SCREEN.blit(BG, (0, 0))
