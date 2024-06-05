@@ -3,8 +3,8 @@ import spritesheet
 
 pygame.init()
 
-SCREEN_WIDTH = 500
-SCREEN_HEIGHT = 500
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 800
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Spritesheets')
@@ -23,7 +23,6 @@ animation_cooldown = 100
 frame = 0
 for x in range(animation_steps):
     animation_list.append(sprite_sheet.get_image( x, 48, 48, 3, BLACK))
-
 
 run = True
 while run:
