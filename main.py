@@ -81,7 +81,7 @@ def main():
 
     def pause_menu():
         paused = True
-        menu_items = ["Resume", "Quit"]
+        menu_items = ["Resume", "Main Menu"]
         selected_item = 0
 
         while paused:
