@@ -7,7 +7,7 @@ def main():
 
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
-    WORLD_WIDTH, WORLD_HEIGHT = 1600, 600  # Increased width for horizontal scrolling
+    WORLD_WIDTH, WORLD_HEIGHT = 1600, 600
     PLAYER_WIDTH, PLAYER_HEIGHT = 50, 50
     PLAYER_COLOR = (0, 0, 255)
     BACKGROUND_COLOR = (0, 0, 0)
@@ -17,7 +17,7 @@ def main():
 
     # Load background image
     try:
-        background_image = pygame.image.load("images/background1.png")  # Replace with your image file
+        background_image = pygame.image.load("images/background1.png")
         background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))
     except pygame.error:
         print("Error loading background image. Please check the path.")
@@ -158,7 +158,7 @@ def main():
                     pause_menu()
 
         # Update sprites
-        all_sprites.update([])  # No platforms
+        all_sprites.update([])
 
         # Adjust camera position to follow the player
         camera_x = player.rect.x - SCREEN_WIDTH // 2
