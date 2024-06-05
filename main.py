@@ -72,12 +72,12 @@ def main():
                 self.velocity_y = 0
                 self.on_ground = True
 
-    def draw_text(surface, text, size, color, x, y):
-        font = pygame.font.Font(None, size)
+    def draw_text(screen, text, size, color, x, y, font_name='Arial'):
+        font = pygame.font.SysFont(font_name, size)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
-        surface.blit(text_surface, text_rect)
+        screen.blit(text_surface, text_rect)
 
     def pause_menu():
         paused = True
