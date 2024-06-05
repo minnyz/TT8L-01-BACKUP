@@ -102,6 +102,18 @@ def main():
                         elif selected_item == 1:  # Quit
                             pygame.quit()
                             sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Left mouse button
+                        mouse_y = event.pos[1]
+                        for i, item in enumerate(menu_items):
+                            text_rect = pygame.Rect(0, 0, 200, 50)
+                            text_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
+                            if text_rect.collidepoint(event.pos):
+                                if i == 0:  # Resume
+                                    paused = False
+                                elif i == 1:  # Quit
+                                    pygame.quit()
+                                    sys.exit()
 
             screen.fill((0, 0, 0))  # Fill the screen with black
             draw_text(screen, 'Paused', 74, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
