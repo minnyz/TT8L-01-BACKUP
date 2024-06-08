@@ -123,11 +123,6 @@ def audio():
     lobby.play(-1)
     lobby.set_volume(volume_settings.get("music_volume", 0.5))
     
-    def update_volume():
-        volume_settings["music_volume"] = music_volume_slider.get_value()
-        volume_settings["effects_volume"] = effects_volume_slider.get_value()
-        lobby.set_volume(volume_settings["music_volume"])
-        save_volume_settings(volume_settings)
     running = True
     while running:
         SCREEN.blit(BG, (0, 0))
@@ -161,11 +156,17 @@ def audio():
                 if OPTIONS_BACK.checkForInput(pygame.mouse.get_pos()):
                     volume_settings["music_volume"] = music_volume_slider.get_value()
                     volume_settings["effects_volume"] = effects_volume_slider.get_value()
-                    lobby.set_volume(volume_settings["music_volume"])
+            
                     save_volume_settings(volume_settings)
-                    click_sound.play()
-                    #Go back to options menu
+                    # Go back to options menu
+                    click_sound.play()        
                     options()
+            if event.type == pygame.MOUSEMOTION:
+                # Check if the music volume slider is being dragged left
+                if music_volume_slider.dragging and event.rel[0] < 0:
+                    music_volume_slider.pos = max(0.0, music_volume_slider.pos - 0.01)
+                    lobby.set_volume(music_volume_slider.get_value())
+        
             music_volume_slider.handle_event(event)
             effects_volume_slider.handle_event(event)
         pygame.display.flip()
