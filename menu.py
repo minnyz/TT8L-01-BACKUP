@@ -10,9 +10,20 @@ pygame.mixer.init()
 # Load the click sound
 click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
 
+
+# Define screen dimensions
+windowed_size = (1280, 720)  # Windowed mode size
+fullscreen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)  # Fullscreen size
+
 # Create the screen and set the title
-SCREEN = pygame.display.set_mode((1280, 720))
-pygame.display.set_caption("Menu")
+SCREEN = pygame.display.set_mode(windowed_size,pygame.FULLSCREEN)
+is_fullscreen = True
+pygame.display.set_caption("Neon Vail")
+
+#Colors for Tick Box
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
 
 # Colors for Slider
 BG_COLOR = (30, 30, 30)
@@ -73,6 +84,15 @@ def load_volume_settings():
             return data
     except FileNotFoundError:
         return {"music_volume": 0.5, "effects_volume": 0.5}  
+    
+# Function to draw hover text box
+def draw_hover_text(screen, text, pos):
+    font = get_font_1(20)
+    text_surface = font.render(text, True, BLACK)
+    text_rect = text_surface.get_rect(topleft=pos)
+    background_rect = text_rect.inflate(10, 10)
+    pygame.draw.rect(screen, WHITE, background_rect)
+    screen.blit(text_surface, text_rect)
 
 # Options 
 def options():
@@ -173,14 +193,24 @@ def audio():
 
 #Video
 def video():
+    global SCREEN, is_fullscreen
+    
+    checkbox_rect = pygame.Rect(900, 200, 40, 40)
+    checkbox_checked = is_fullscreen
+    
     while True:
         OPTIONS_MOUSE_POS = pygame.mouse.get_pos()
         SCREEN.blit(BG, (0, 0))
-
+        
+        # Video Text
         PLAY_TEXT = get_font_1(110).render("Video", True, "#b68f40")
         PLAY_RECT = PLAY_TEXT.get_rect(center=(640, 60))
         SCREEN.blit(PLAY_TEXT, PLAY_RECT)
-
+        
+        DISPLAY_TEXT = get_font_1(55).render("Display Mode", True, "#FFFFF0")
+        DISPLAY_RECT = DISPLAY_TEXT.get_rect(center=(250, 200))
+        SCREEN.blit(DISPLAY_TEXT, DISPLAY_RECT)
+        
         OPTIONS_BACK = Button(image=None, pos=(180, 600), text_input="Back", font=get_font_1(75), base_color="White", hovering_color="Red")
         for button in [OPTIONS_BACK]:
             button.changeColor(OPTIONS_MOUSE_POS)
@@ -190,11 +220,30 @@ def video():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  
+                    if checkbox_rect.collidepoint(event.pos):
+                        checkbox_checked = not checkbox_checked
+                        if checkbox_checked:
+                            SCREEN = pygame.display.set_mode(fullscreen_size, pygame.FULLSCREEN)
+                            is_fullscreen = True
+                        else:
+                            SCREEN = pygame.display.set_mode(windowed_size)
+                            is_fullscreen = False
+                            
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
                     click_sound.play()
                     options()
 
+        # Draw the checkbox
+        pygame.draw.rect(SCREEN, WHITE, checkbox_rect, 2)
+        if checkbox_checked:
+            pygame.draw.rect(SCREEN, GREEN, checkbox_rect)
+        
+        if checkbox_rect.collidepoint(OPTIONS_MOUSE_POS):
+            draw_hover_text(SCREEN, "Toggle Fullscreen/Windowed", (checkbox_rect.right + 10, checkbox_rect.y))
+            
         pygame.display.update()
 
 #Key Bindings
