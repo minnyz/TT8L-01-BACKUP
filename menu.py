@@ -7,39 +7,6 @@ import json
 pygame.init()
 pygame.mixer.init()
 
-# Load the click sound
-click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
-
-
-# Define screen dimensions
-windowed_size = (1280, 720)  # Windowed mode size
-fullscreen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)  # Fullscreen size
-
-# Create the screen and set the title
-SCREEN = pygame.display.set_mode(windowed_size,pygame.FULLSCREEN)
-is_fullscreen = True
-pygame.display.set_caption("Neon Vail")
-
-#Colors for Tick Box
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-GREEN = (0, 255, 0)
-
-# Colors for Slider
-BG_COLOR = (30, 30, 30)
-SLIDER_COLOR = (200, 200, 200)
-HANDLE_COLOR = ("#b68f40")
-
-# Background
-BG = pygame.image.load("assets/Background.png")
-
-# Fonts
-def get_font_1(size):
-    return pygame.font.Font("assets/cyb3.ttf", size)
-
-def get_font_2(size):
-    return pygame.font.Font("assets/cyb_options.otf", size)
-
 #class for slider
 class Slider:
     def __init__(self, x, y, width, height, handle_width, initial_pos=0.5):
@@ -71,8 +38,36 @@ class Slider:
 
     def get_value(self):
         return self.pos
-    
-#Define of save and load volume when changed 
+
+# Load the click sound
+click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
+
+# Define screen dimensions
+fullscreen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)  # Fullscreen size
+
+pygame.display.set_caption("Neon Vail")
+
+#Colors for Tick Box
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+
+# Colors for Slider
+BG_COLOR = (30, 30, 30)
+SLIDER_COLOR = (200, 200, 200)
+HANDLE_COLOR = ("#b68f40")
+
+# Background
+BG = pygame.image.load("assets/Background.png")
+
+# Fonts
+def get_font_1(size):
+    return pygame.font.Font("assets/cyb3.ttf", size)
+
+def get_font_2(size):
+    return pygame.font.Font("assets/cyb_options.otf", size)
+  
+# Define of save and load volume when changed 
 def save_volume_settings(volume_settings):
     with open("volume_settings.json", "w") as f:
         json.dump(volume_settings, f)
@@ -84,7 +79,29 @@ def load_volume_settings():
             return data
     except FileNotFoundError:
         return {"music_volume": 0.5, "effects_volume": 0.5}  
-    
+
+# Define of save and load display when changed 
+def save_display_settings(display_settings):
+    with open("display_settings.json", "w") as f:
+        json.dump(display_settings, f)
+
+def load_display_settings():
+    try:
+        with open("display_settings.json", "r") as f:
+            data = json.load(f)
+            return data
+    except FileNotFoundError:
+        return {"is_fullscreen": True} 
+
+display_settings = load_display_settings()
+is_fullscreen = display_settings.get("is_fullscreen", True)
+
+# Create the screen and set the title
+if is_fullscreen:
+    SCREEN = pygame.display.set_mode((1280,720),pygame.FULLSCREEN)
+else:
+    SCREEN = pygame.display.set_mode((1280,720))
+
 # Function to draw hover text box
 def draw_hover_text(screen, text, pos):
     font = get_font_1(20)
@@ -228,8 +245,10 @@ def video():
                             SCREEN = pygame.display.set_mode(fullscreen_size, pygame.FULLSCREEN)
                             is_fullscreen = True
                         else:
-                            SCREEN = pygame.display.set_mode(windowed_size)
+                            SCREEN = pygame.display.set_mode((1280,720))
                             is_fullscreen = False
+                         # Save display settings
+                        save_display_settings({"is_fullscreen": is_fullscreen})
                             
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
