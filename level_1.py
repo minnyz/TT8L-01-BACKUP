@@ -15,7 +15,7 @@ class Portal(pygame.sprite.Sprite):
 def load_level(level_number):
     if level_number == 1:
         background_image = pygame.image.load("images/background1.png")
-        background_image = pygame.transform.scale(background_image, (1600, 600))  # Use WORLD_WIDTH, WORLD_HEIGHT directly here
+        background_image = pygame.transform.scale(background_image, (1600, 600))
         portal = Portal(1600 - 100, 600 - 150)  # Place portal at the end of the level
     elif level_number == 2:
         background_image = pygame.image.load("images/background2.png")
