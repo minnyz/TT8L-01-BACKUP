@@ -41,15 +41,6 @@ def main():
     JUMP_VELOCITY = -10
     GRAVITY = 0.5
 
-    # Load background image
-    try:
-        background_image = pygame.image.load("images/background1.png")
-        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))
-    except pygame.error:
-        print("Error loading background image. Please check the path.")
-        pygame.quit()
-        sys.exit()
-
     # Set up the display in fullscreen mode
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
     pygame.display.set_caption("World(test)")
