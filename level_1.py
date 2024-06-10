@@ -43,7 +43,7 @@ def main():
 
     # Set up the display in fullscreen mode
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-    pygame.display.set_caption("World(test)")
+    pygame.display.set_caption("Neon Veil")
 
     # Update constants based on actual screen size
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
