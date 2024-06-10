@@ -191,7 +191,7 @@ def main():
         # Check for collision with portal
         if pygame.sprite.spritecollideany(player, portals):
             level_number += 1
-            if level_number > 2:  # Assuming you have 2 levels
+            if level_number > 3:
                 print("Congratulations! You've completed all levels.")
                 running = False
             else:
