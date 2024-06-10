@@ -1,6 +1,16 @@
 import pygame
 import sys
 
+# Define the Portal class
+class Portal(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((50, 100))  # Dimensions of the portal
+        self.image.fill((255, 0, 0))  # Color of the portal (red)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
 def main():
     # Initialize Pygame
     pygame.init()
