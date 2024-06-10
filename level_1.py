@@ -27,6 +27,7 @@ def load_level(level_number):
         sys.exit()
     return background_image, portal
 
+# Main function
 def main():
     # Initialize Pygame
     pygame.init()
@@ -158,9 +159,15 @@ def main():
     # Sprite groups
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
+    portals = pygame.sprite.Group()
 
     # Camera position
     camera_x = 0
+
+    # Level management
+    level_number = 1
+    background_image, portal = load_level(level_number)
+    portals.add(portal)
 
     # Main game loop
     running = True
@@ -177,6 +184,19 @@ def main():
         # Update sprites
         all_sprites.update([])
 
+        # Check for collision with portal
+        if pygame.sprite.spritecollideany(player, portals):
+            level_number += 1
+            if level_number > 2:  # Assuming you have 2 levels
+                print("Congratulations! You've completed all levels.")
+                running = False
+            else:
+                background_image, portal = load_level(level_number)
+                portals.empty()
+                portals.add(portal)
+                player.rect.x = 100  # Reset player position
+                player.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT - 100
+
         # Adjust camera position to follow the player
         camera_x = player.rect.x - SCREEN_WIDTH // 2
         camera_x = max(0, min(WORLD_WIDTH - SCREEN_WIDTH, camera_x))
@@ -186,6 +206,8 @@ def main():
 
         # Draw everything relative to camera position
         for sprite in all_sprites:
+            screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
+        for sprite in portals:
             screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
 
         # Update the display
