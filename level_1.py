@@ -21,6 +21,10 @@ def load_level(level_number):
         background_image = pygame.image.load("images/background2.png")
         background_image = pygame.transform.scale(background_image, (1600, 600))
         portal = Portal(1600 - 100, 600 - 150)
+    elif level_number == 3:
+        background_image = pygame.image.load("images/background3.png")
+        background_image = pygame.transform.scale(background_image, (1600, 600))
+        portal = Portal(1600 - 100, 600 - 150)
     else:
         print(f"Level {level_number} not implemented.")
         pygame.quit()
