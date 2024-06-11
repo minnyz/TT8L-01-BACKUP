@@ -58,14 +58,14 @@ SLIDER_COLOR = (200, 200, 200)
 HANDLE_COLOR = ("#b68f40")
 
 # Background
-BG = pygame.image.load("assets/Background.png")
+BG = pygame.image.load("images/Background.png")
 
 # Fonts
 def get_font_1(size):
-    return pygame.font.Font("assets/cyb3.ttf", size)
+    return pygame.font.Font("images/cyb3.ttf", size)
 
 def get_font_2(size):
-    return pygame.font.Font("assets/cyb_options.otf", size)
+    return pygame.font.Font("images/cyb_options.otf", size)
   
 # Define of save and load volume when changed 
 def save_volume_settings(volume_settings):
