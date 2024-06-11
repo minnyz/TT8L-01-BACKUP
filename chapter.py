@@ -157,6 +157,60 @@ def main():
             pygame.display.flip()
             clock.tick(15)  # Limit the loop to 15 frames per second
 
+    def victory_screen():
+        victory = True
+        menu_items = ["Main Menu", "Quit"]
+        selected_item = 0
+
+        while victory:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        selected_item = (selected_item - 1) % len(menu_items)
+                    elif event.key == pygame.K_DOWN:
+                        selected_item = (selected_item + 1) % len(menu_items)
+                    elif event.key == pygame.K_RETURN:
+                        if selected_item == 0:  # Main Menu
+                            main()
+                        elif selected_item == 1:  # Quit
+                            pygame.quit()
+                            sys.exit()
+                elif event.type == pygame.MOUSEMOTION:
+                    mouse_y = event.pos[1]
+                    for i, item in enumerate(menu_items):
+                        text_rect = pygame.Rect(0, 0, 200, 50)
+                        text_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
+                        if text_rect.collidepoint(event.pos):
+                            selected_item = i
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Left mouse button
+                        mouse_y = event.pos[1]
+                        for i, item in enumerate(menu_items):
+                            text_rect = pygame.Rect(0, 0, 200, 50)
+                            text_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
+                            if text_rect.collidepoint(event.pos):
+                                if i == 0:  # Main Menu
+                                    main()
+                                elif i == 1:  # Quit
+                                    pygame.quit()
+                                    sys.exit()
+
+            screen.fill((0, 0, 0))  # Fill the screen with black
+            draw_text(screen, 'Victory!', 74, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+
+            for i, item in enumerate(menu_items):
+                if i == selected_item:
+                    color = (255, 255, 0)  # Yellow when selected or hovered
+                else:
+                    color = (255, 255, 255)  # White when not selected
+                draw_text(screen, item, 50, color, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
+
+            pygame.display.flip()
+            clock.tick(15)  # Limit the loop to 15 frames per second
+
     # Create player
     player = Player()
 
@@ -192,7 +246,7 @@ def main():
         if pygame.sprite.spritecollideany(player, portals):
             level_number += 1
             if level_number > 3:
-                print("Congratulations! You've completed all levels.")
+                victory_screen()
                 running = False
             else:
                 background_image, portal = load_level(level_number)
