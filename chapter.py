@@ -1,5 +1,6 @@
 import pygame
 import sys
+import menu  # Import the main menu module
 
 # Define the Portal class
 class Portal(pygame.sprite.Sprite):
@@ -121,9 +122,9 @@ def main():
                     elif event.key == pygame.K_RETURN:
                         if selected_item == 0:  # Resume
                             paused = False
-                        elif selected_item == 1:  # Quit
-                            pygame.quit()
-                            sys.exit()
+                        elif selected_item == 1:  # Main Menu
+                            menu.main()  # Call the main menu
+                            return
                 elif event.type == pygame.MOUSEMOTION:
                     mouse_y = event.pos[1]
                     for i, item in enumerate(menu_items):
@@ -140,9 +141,9 @@ def main():
                             if text_rect.collidepoint(event.pos):
                                 if i == 0:  # Resume
                                     paused = False
-                                elif i == 1:  # Quit
-                                    pygame.quit()
-                                    sys.exit()
+                                elif i == 1:  # Main Menu
+                                    menu.main()  # Call the main menu
+                                    return
 
             screen.fill((0, 0, 0))  # Fill the screen with black
             draw_text(screen, 'Paused', 74, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
@@ -174,7 +175,8 @@ def main():
                         selected_item = (selected_item + 1) % len(menu_items)
                     elif event.key == pygame.K_RETURN:
                         if selected_item == 0:  # Main Menu
-                            main()
+                            menu.main()  # Call the main menu
+                            return
                         elif selected_item == 1:  # Quit
                             pygame.quit()
                             sys.exit()
@@ -193,7 +195,8 @@ def main():
                             text_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
                             if text_rect.collidepoint(event.pos):
                                 if i == 0:  # Main Menu
-                                    main()
+                                    menu.main()  # Call the main menu
+                                    return
                                 elif i == 1:  # Quit
                                     pygame.quit()
                                     sys.exit()
