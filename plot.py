@@ -12,7 +12,7 @@ Background = pygame.image.load("Assets/Background.png")
 Background = pygame.transform.scale(Background, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 intro_font = pygame.font.Font("Assets/cyberpunk_font.ttf", 45)
-detail_font = pygame.font.Font("Assets/cyberpunk_font.ttf", 30)
+detail_font = pygame.font.Font("Assets/cyberpunk_2_font.ttf", 30)
 
 def intro_text(text, font, text_col, x, y):
     img = font.render(text, True, text_col)
@@ -51,7 +51,14 @@ while run:
                 'metropolis of towering skyscrapers and hidden dangers. Detective Riley Crane, a former corporate '
                 'security expert turned rogue investigator, is called to investigate the mysterious murder of a high-ranking '
                 'executive from Orion Industries. The crime scene is a baffling mix of ancient symbols and '
-                'disabled high-tech security.', detail_font, (255, 0, 255), 50, 150, SCREEN_WIDTH - 100)
+                'disabled high-tech security.'
+                'As Crane delves into the case, he uncovers whispers of an underground movement called "The Veil," '
+                "rumored to be fighting against corporate corruption. Navigating through Echelon's dangerous streets, "
+                'Crane must gather clues, interrogate suspects, and make critical decisions that will shape the outcome of his investigation.'
+                "tep into Crane's shoes and uncover the secrets of "
+                '"Neon Veil." ' 
+                "Explore the city's dark underbelly, solve the mystery, and decide the fate of Echelon."
+                'Welcome to a world where nothing is as it seems. ', detail_font, (255, 0, 255), 50, 150, SCREEN_WIDTH - 100)
 
     pygame.display.flip()
 
