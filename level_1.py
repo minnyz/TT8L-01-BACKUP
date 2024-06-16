@@ -1,55 +1,36 @@
 import pygame
 import sys
-import menu  # Import the main menu module
 
-# Define the Portal class
-class Portal(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.Surface((50, 100))  # Dimensions of the portal
-        self.image.fill((255, 0, 0))  # Color of the portal (red)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
 
-# Define the function to load levels
-def load_level(level_number):
-    if level_number == 1:
-        background_image = pygame.image.load("images/background1.png")
-        background_image = pygame.transform.scale(background_image, (1600, 600))
-        portal = Portal(1600 - 100, 600 - 150)  # Place portal at the end of the level
-    elif level_number == 2:
-        background_image = pygame.image.load("images/background2.png")
-        background_image = pygame.transform.scale(background_image, (1600, 600))
-        portal = Portal(1600 - 100, 600 - 150)
-    elif level_number == 3:
-        background_image = pygame.image.load("images/background3.png")
-        background_image = pygame.transform.scale(background_image, (1600, 600))
-        portal = Portal(1600 - 100, 600 - 150)
-    else:
-        print(f"Level {level_number} not implemented.")
-        pygame.quit()
-        sys.exit()
-    return background_image, portal
-
-# Main function
 def main():
     # Initialize Pygame
     pygame.init()
-
+    
+    pygame.mixer.init()
+    click_sound =  pygame.mixer.Sound("assets/enterface_click_2.mp3")
+    
     # Constants
-    SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
-    WORLD_WIDTH, WORLD_HEIGHT = 1600, 600
+    SCREEN_WIDTH, SCREEN_HEIGHT = 720, 720
+    WORLD_WIDTH, WORLD_HEIGHT = 1600, 720  # Increased width for horizontal scrolling
     PLAYER_WIDTH, PLAYER_HEIGHT = 50, 50
     PLAYER_COLOR = (0, 0, 255)
     BACKGROUND_COLOR = (0, 0, 0)
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -10
-    GRAVITY = 0.5
+    GRAVITY = 0.1
+
+    # Load background image
+    try:
+        background_image = pygame.image.load("assets/background1.png")  # Replace with your image file
+        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))
+    except pygame.error:
+        print("Error loading background image. Please check the path.")
+        pygame.quit()
+        sys.exit()
 
     # Set up the display in fullscreen mode
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-    pygame.display.set_caption("Neon Veil")
+    pygame.display.set_caption("World(test)")
 
     # Update constants based on actual screen size
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
@@ -95,12 +76,12 @@ def main():
                 self.velocity_y = 0
                 self.on_ground = True
 
-    def draw_text(screen, text, size, color, x, y, font_name='Arial'):
-        font = pygame.font.SysFont(font_name, size)
+    def draw_text(surface, text, size, color, x, y):
+        font = pygame.font.Font("assets/cyb3.ttf", 70)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
-        screen.blit(text_surface, text_rect)
+        surface.blit(text_surface, text_rect)
 
     def pause_menu():
         paused = True
@@ -122,9 +103,9 @@ def main():
                     elif event.key == pygame.K_RETURN:
                         if selected_item == 0:  # Resume
                             paused = False
-                        elif selected_item == 1:  # Main Menu
-                            menu.main()  # Call the main menu
-                            return
+                        elif selected_item == 1:  # Quit
+                            import menu
+                            menu.main_menu()
                 elif event.type == pygame.MOUSEMOTION:
                     mouse_y = event.pos[1]
                     for i, item in enumerate(menu_items):
@@ -139,70 +120,16 @@ def main():
                             text_rect = pygame.Rect(0, 0, 200, 50)
                             text_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
                             if text_rect.collidepoint(event.pos):
+                                import menu
+                                click_sound.play()
                                 if i == 0:  # Resume
                                     paused = False
-                                elif i == 1:  # Main Menu
-                                    menu.main()  # Call the main menu
-                                    return
+                                elif i == 1:  # Quit
+                                    import menu
+                                    menu.main_menu()
 
             screen.fill((0, 0, 0))  # Fill the screen with black
             draw_text(screen, 'Paused', 74, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
-
-            for i, item in enumerate(menu_items):
-                if i == selected_item:
-                    color = (255, 255, 0)  # Yellow when selected or hovered
-                else:
-                    color = (255, 255, 255)  # White when not selected
-                draw_text(screen, item, 50, color, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
-
-            pygame.display.flip()
-            clock.tick(15)  # Limit the loop to 15 frames per second
-
-    def victory_screen():
-        victory = True
-        menu_items = ["Main Menu", "Quit"]
-        selected_item = 0
-
-        while victory:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_UP:
-                        selected_item = (selected_item - 1) % len(menu_items)
-                    elif event.key == pygame.K_DOWN:
-                        selected_item = (selected_item + 1) % len(menu_items)
-                    elif event.key == pygame.K_RETURN:
-                        if selected_item == 0:  # Main Menu
-                            menu.main()  # Call the main menu
-                            return
-                        elif selected_item == 1:  # Quit
-                            pygame.quit()
-                            sys.exit()
-                elif event.type == pygame.MOUSEMOTION:
-                    mouse_y = event.pos[1]
-                    for i, item in enumerate(menu_items):
-                        text_rect = pygame.Rect(0, 0, 200, 50)
-                        text_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
-                        if text_rect.collidepoint(event.pos):
-                            selected_item = i
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # Left mouse button
-                        mouse_y = event.pos[1]
-                        for i, item in enumerate(menu_items):
-                            text_rect = pygame.Rect(0, 0, 200, 50)
-                            text_rect.midtop = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + i * 60)
-                            if text_rect.collidepoint(event.pos):
-                                if i == 0:  # Main Menu
-                                    menu.main()  # Call the main menu
-                                    return
-                                elif i == 1:  # Quit
-                                    pygame.quit()
-                                    sys.exit()
-
-            screen.fill((0, 0, 0))  # Fill the screen with black
-            draw_text(screen, 'Victory!', 74, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
 
             for i, item in enumerate(menu_items):
                 if i == selected_item:
@@ -220,15 +147,9 @@ def main():
     # Sprite groups
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
-    portals = pygame.sprite.Group()
 
     # Camera position
     camera_x = 0
-
-    # Level management
-    level_number = 1
-    background_image, portal = load_level(level_number)
-    portals.add(portal)
 
     # Main game loop
     running = True
@@ -243,20 +164,7 @@ def main():
                     pause_menu()
 
         # Update sprites
-        all_sprites.update([])
-
-        # Check for collision with portal
-        if pygame.sprite.spritecollideany(player, portals):
-            level_number += 1
-            if level_number > 3:
-                victory_screen()
-                running = False
-            else:
-                background_image, portal = load_level(level_number)
-                portals.empty()
-                portals.add(portal)
-                player.rect.x = 100  # Reset player position
-                player.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT - 100
+        all_sprites.update([])  # No platforms
 
         # Adjust camera position to follow the player
         camera_x = player.rect.x - SCREEN_WIDTH // 2
@@ -267,8 +175,6 @@ def main():
 
         # Draw everything relative to camera position
         for sprite in all_sprites:
-            screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
-        for sprite in portals:
             screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
 
         # Update the display

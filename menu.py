@@ -40,7 +40,7 @@ class Slider:
         return self.pos
 
 # Load the click sound
-click_sound = pygame.mixer.Sound("images/enterface_click_2.mp3")
+click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
 
 # Define screen dimensions
 fullscreen_size = (pygame.display.Info().current_w, pygame.display.Info().current_h)  # Fullscreen size
@@ -58,14 +58,14 @@ SLIDER_COLOR = (200, 200, 200)
 HANDLE_COLOR = ("#b68f40")
 
 # Background
-BG = pygame.image.load("images/Background.png")
+BG = pygame.image.load("assets/Background.png")
 
 # Fonts
 def get_font_1(size):
-    return pygame.font.Font("images/cyb3.ttf", size)
+    return pygame.font.Font("assets/cyb3.ttf", size)
 
 def get_font_2(size):
-    return pygame.font.Font("images/cyb_options.otf", size)
+    return pygame.font.Font("assets/cyb_options.otf", size)
   
 # Define of save and load volume when changed 
 def save_volume_settings(volume_settings):
@@ -318,8 +318,8 @@ def main_menu():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if PLAY_BUTTON.checkForInput(MENU_MOUSE_POS):
                     click_sound.play()
-                    import chapter
-                    chapter.main()
+                    import level_1
+                    level_1.main()
                 if OPTIONS_BUTTON.checkForInput(MENU_MOUSE_POS):
                     click_sound.play()
                     options()
