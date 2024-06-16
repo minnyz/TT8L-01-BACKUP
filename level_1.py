@@ -12,8 +12,8 @@ def main():
     SCREEN_WIDTH, SCREEN_HEIGHT = 720, 720
     PLAYER_WIDTH, PLAYER_HEIGHT = 200, 200  # Increased size to make the player larger
     PLAYER_SPEED = 5
-    JUMP_VELOCITY = -10
-    GRAVITY = 0.3
+    JUMP_VELOCITY = -15
+    GRAVITY = 0.5
     FRAME_RATE = 60
 
     # Set up the display
@@ -22,18 +22,37 @@ def main():
 
     # Update constants based on actual screen size
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
-    WORLD_WIDTH = 1600  # Keeping the original world width for horizontal scrolling
-    WORLD_HEIGHT = SCREEN_HEIGHT  # Fit the world height to the screen height
 
-    # Load and scale the background image to fit screen height while maintaining aspect ratio
-    try:
-        background_image = pygame.image.load("assets/background1.png")
-        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, SCREEN_HEIGHT))
-    except pygame.error:
-        print("Error loading background image. Please check the path.")
-        pygame.quit()
-        sys.exit()
+    # Define stages
+    stages = [
+        {
+            "background": "assets/background1.png",
+            "world_width": 1600,
+            "player_start": (100, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)
+        },
+        {
+            "background": "assets/background2.png",
+            "world_width": 2000,
+            "player_start": (100, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)
+        }
+    ]
 
+    current_stage_index = 0
+
+    # Function to load a stage
+    def load_stage(index, player):
+        stage = stages[index]
+        try:
+            background_image = pygame.image.load(stage["background"])
+            background_image = pygame.transform.scale(background_image, (stage["world_width"], SCREEN_HEIGHT))
+        except pygame.error:
+            print("Error loading background image. Please check the path.")
+            pygame.quit()
+            sys.exit()
+
+        player.rect.topleft = stage["player_start"]
+        return background_image, stage["world_width"]
+    
     # Function to extract frames from the sprite sheet and scale them
     def extract_frames(sheet, frame_width, frame_height, num_frames, scale_width, scale_height):
         frames = []
@@ -104,14 +123,18 @@ def main():
             # Boundary checks within the world
             if self.rect.left < 0:
                 self.rect.left = 0
-            if self.rect.right > WORLD_WIDTH:
-                self.rect.right = WORLD_WIDTH
+            if self.rect.right > world_width:
+                self.rect.right = world_width
             if self.rect.top < 0:
                 self.rect.top = 0
             if self.rect.bottom > SCREEN_HEIGHT:
                 self.rect.bottom = SCREEN_HEIGHT
                 self.velocity_y = 0
                 self.on_ground = True
+
+            # Check if player reached the end of the stage
+            if self.rect.right >= world_width:
+                advance_to_next_stage()
 
             # Update animation
             now = pygame.time.get_ticks()
@@ -121,6 +144,19 @@ def main():
                 if self.frame_index >= len(self.current_frames):
                     self.frame_index = 0
                 self.image = self.current_frames[self.frame_index]
+
+    def advance_to_next_stage():
+        nonlocal current_stage_index, player
+        current_stage_index += 1
+        if current_stage_index >= len(stages):
+            current_stage_index = 0  # Loop back to the first stage or handle game end
+            load_current_stage(player)
+
+    def load_current_stage(player):
+        nonlocal background_image, world_width
+        background_image, world_width = load_stage(current_stage_index, player)
+        return background_image, world_width
+
 
     def draw_text(surface, text, size, color, x, y):
         font = pygame.font.Font("assets/cyb3.ttf", size)
@@ -189,6 +225,10 @@ def main():
 
     # Create player
     player = Player()
+    
+    # Load the initial stage
+    load_current_stage(player)
+    background_image, world_width = load_current_stage(player)
 
     # Sprite groups
     all_sprites = pygame.sprite.Group()
@@ -209,28 +249,22 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     pause_menu()
 
-        # Update sprites
+        # Update all sprites
         all_sprites.update()
 
-        # Adjust camera position to follow the player
-        camera_x = player.rect.x - SCREEN_WIDTH // 2
-        camera_x = max(0, min(WORLD_WIDTH - SCREEN_WIDTH, camera_x))
+        # Scroll the camera with the player
+        camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, world_width - SCREEN_WIDTH))
 
-        # Draw background image relative to camera position
-        screen.blit(background_image, (-camera_x, 0))
-
-        # Draw all sprites
+        # Draw everything
+        screen.fill((0, 0, 0))  # Clear the screen
+        screen.blit(background_image, (0 - camera_x, 0))  # Draw background
         for sprite in all_sprites:
-            screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
+            screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
 
-        # Update the display
         pygame.display.flip()
-
-        # Cap the frame rate
-        clock.tick(FRAME_RATE)
+        clock.tick(FRAME_RATE)  # Limit the frame rate
 
     pygame.quit()
-    sys.exit()
 
 if __name__ == "__main__":
     main()
