@@ -10,21 +10,27 @@ def main():
 
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 720, 720
-    PLAYER_WIDTH, PLAYER_HEIGHT = 50, 50
+    PLAYER_WIDTH, PLAYER_HEIGHT = 48, 48
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -10
     GRAVITY = 0.1
     FRAME_RATE = 60
 
     # Set up the display
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Animated Sprite Sheet Example")
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+    pygame.display.set_caption("Neon Veil")
 
-    # Load sprite sheet
+    # Update constants based on actual screen size
+    SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
+    WORLD_WIDTH = 1600  # Keeping the original world width for horizontal scrolling
+    WORLD_HEIGHT = SCREEN_HEIGHT  # Fit the world height to the screen height
+
+    # Load and scale the background image to fit screen height while maintaining aspect ratio
     try:
-        sprite_sheet = pygame.image.load("mc/mc_idle.png").convert_alpha()
+        background_image = pygame.image.load("assets/background1.png")
+        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, SCREEN_HEIGHT))
     except pygame.error:
-        print("Error loading sprite sheet. Please check the path.")
+        print("Error loading background image. Please check the path.")
         pygame.quit()
         sys.exit()
 
@@ -39,24 +45,35 @@ def main():
             frames.append(frame)
         return frames
 
-    # Extract frames from the sprite sheet
-    frame_width, frame_height = 48, 48  # Size of each frame in the sprite sheet
-    num_frames = 4  # Number of frames in the animation
-    frames = extract_frames(sprite_sheet, frame_width, frame_height, num_frames)
+    # Load sprite sheets for idle and running animations
+    try:
+        idle_sprite_sheet = pygame.image.load("mc/mc_idle.png").convert_alpha()
+        running_sprite_sheet = pygame.image.load("mc/mc_run.png").convert_alpha()
+    except pygame.error:
+        print("Error loading sprite sheets. Please check the path.")
+        pygame.quit()
+        sys.exit()
+
+    # Extract frames from the sprite sheets
+    idle_frames = extract_frames(idle_sprite_sheet, PLAYER_WIDTH, PLAYER_HEIGHT, 4)  # Adjust number of frames as needed
+    running_frames = extract_frames(running_sprite_sheet, PLAYER_WIDTH, PLAYER_HEIGHT, 6)  # Adjust number of frames as needed
 
     # Player class
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super().__init__()
-            self.image = frames[0]
+            self.idle_frames = idle_frames
+            self.running_frames = running_frames
+            self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
-            self.rect.y = SCREEN_HEIGHT - frame_height - 100
+            self.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT - 100
             self.velocity_y = 0
             self.on_ground = False
             self.frame_index = 0
             self.animation_speed = 0.1  # Control the speed of the animation
             self.last_update = pygame.time.get_ticks()
+            self.current_frames = self.idle_frames
 
         def update(self):
             # Apply gravity
@@ -66,8 +83,13 @@ def main():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_LEFT]:
                 self.rect.x -= PLAYER_SPEED
-            if keys[pygame.K_RIGHT]:
+                self.current_frames = self.running_frames
+            elif keys[pygame.K_RIGHT]:
                 self.rect.x += PLAYER_SPEED
+                self.current_frames = self.running_frames
+            else:
+                self.current_frames = self.idle_frames
+
             if keys[pygame.K_SPACE] and self.on_ground:
                 self.velocity_y = JUMP_VELOCITY
                 self.on_ground = False
@@ -78,8 +100,8 @@ def main():
             # Boundary checks within the world
             if self.rect.left < 0:
                 self.rect.left = 0
-            if self.rect.right > SCREEN_WIDTH:
-                self.rect.right = SCREEN_WIDTH
+            if self.rect.right > WORLD_WIDTH:
+                self.rect.right = WORLD_WIDTH
             if self.rect.top < 0:
                 self.rect.top = 0
             if self.rect.bottom > SCREEN_HEIGHT:
@@ -92,9 +114,9 @@ def main():
             if now - self.last_update > 1000 / FRAME_RATE:
                 self.last_update = now
                 self.frame_index += self.animation_speed
-                if self.frame_index >= len(frames):
+                if self.frame_index >= len(self.current_frames):
                     self.frame_index = 0
-                self.image = frames[int(self.frame_index)]
+                self.image = self.current_frames[int(self.frame_index)]
 
     def draw_text(surface, text, size, color, x, y):
         font = pygame.font.Font("assets/cyb3.ttf", size)
@@ -168,6 +190,9 @@ def main():
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
 
+    # Camera position
+    camera_x = 0
+
     # Main game loop
     running = True
     clock = pygame.time.Clock()
@@ -183,11 +208,16 @@ def main():
         # Update sprites
         all_sprites.update()
 
-        # Draw background color
-        screen.fill((0, 0, 0))
+        # Adjust camera position to follow the player
+        camera_x = player.rect.x - SCREEN_WIDTH // 2
+        camera_x = max(0, min(WORLD_WIDTH - SCREEN_WIDTH, camera_x))
+
+        # Draw background image relative to camera position
+        screen.blit(background_image, (-camera_x, 0))
 
         # Draw all sprites
-        all_sprites.draw(screen)
+        for sprite in all_sprites:
+            screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
 
         # Update the display
         pygame.display.flip()
