@@ -7,26 +7,16 @@ def main():
     pygame.init()
     
     pygame.mixer.init()
-    click_sound =  pygame.mixer.Sound("assets/enterface_click_2.mp3")
+    click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
     
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 720, 720
     WORLD_WIDTH, WORLD_HEIGHT = 1600, 720  # Increased width for horizontal scrolling
     PLAYER_WIDTH, PLAYER_HEIGHT = 50, 50
     PLAYER_COLOR = (0, 0, 255)
-    BACKGROUND_COLOR = (0, 0, 0)
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -10
     GRAVITY = 0.1
-
-    # Load background image
-    try:
-        background_image = pygame.image.load("assets/background1.png")  # Replace with your image file
-        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, WORLD_HEIGHT))
-    except pygame.error:
-        print("Error loading background image. Please check the path.")
-        pygame.quit()
-        sys.exit()
 
     # Set up the display in fullscreen mode
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -34,6 +24,17 @@ def main():
 
     # Update constants based on actual screen size
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
+    WORLD_WIDTH = int(WORLD_WIDTH * (SCREEN_HEIGHT / WORLD_HEIGHT))  # Adjust world width to maintain aspect ratio
+    WORLD_HEIGHT = SCREEN_HEIGHT
+
+    # Load and scale the background image to fit screen height while maintaining aspect ratio
+    try:
+        background_image = pygame.image.load("assets/background1.png")
+        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, SCREEN_HEIGHT))
+    except pygame.error:
+        print("Error loading background image. Please check the path.")
+        pygame.quit()
+        sys.exit()
 
     # Player class
     class Player(pygame.sprite.Sprite):
