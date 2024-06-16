@@ -10,7 +10,7 @@ def main():
 
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 720, 720
-    PLAYER_WIDTH, PLAYER_HEIGHT = 48, 48
+    PLAYER_WIDTH, PLAYER_HEIGHT = 200, 200  # Increased size to make the player larger
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -10
     GRAVITY = 0.1
@@ -34,14 +34,18 @@ def main():
         pygame.quit()
         sys.exit()
 
-    # Function to extract frames from the sprite sheet
-    def extract_frames(sheet, frame_width, frame_height, num_frames):
+    # Function to extract frames from the sprite sheet and scale them
+    def extract_frames(sheet, frame_width, frame_height, num_frames, scale_width, scale_height):
         frames = []
         sheet_width, sheet_height = sheet.get_size()
         for i in range(num_frames):
             x = (i * frame_width) % sheet_width
             y = (i * frame_width) // sheet_width * frame_height
+            if x + frame_width > sheet_width or y + frame_height > sheet_height:
+                print(f"Skipping frame {i} as it goes out of bounds.")
+                continue
             frame = sheet.subsurface(pygame.Rect(x, y, frame_width, frame_height))
+            frame = pygame.transform.scale(frame, (scale_width, scale_height))
             frames.append(frame)
         return frames
 
@@ -54,9 +58,9 @@ def main():
         pygame.quit()
         sys.exit()
 
-    # Extract frames from the sprite sheets
-    idle_frames = extract_frames(idle_sprite_sheet, PLAYER_WIDTH, PLAYER_HEIGHT, 4)  # Adjust number of frames as needed
-    running_frames = extract_frames(running_sprite_sheet, PLAYER_WIDTH, PLAYER_HEIGHT, 6)  # Adjust number of frames as needed
+    # Extract and scale frames from the sprite sheets
+    idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)  # Adjust number of frames as needed
+    running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)  # Adjust number of frames as needed
 
     # Player class
     class Player(pygame.sprite.Sprite):
@@ -111,12 +115,12 @@ def main():
 
             # Update animation
             now = pygame.time.get_ticks()
-            if now - self.last_update > 1000 / FRAME_RATE:
+            if now - self.last_update > 1000 / (FRAME_RATE * self.animation_speed):
                 self.last_update = now
-                self.frame_index += self.animation_speed
+                self.frame_index += 1
                 if self.frame_index >= len(self.current_frames):
                     self.frame_index = 0
-                self.image = self.current_frames[int(self.frame_index)]
+                self.image = self.current_frames[self.frame_index]
 
     def draw_text(surface, text, size, color, x, y):
         font = pygame.font.Font("assets/cyb3.ttf", size)
