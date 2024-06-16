@@ -1,54 +1,64 @@
 import pygame
 import sys
 
-
 def main():
     # Initialize Pygame
     pygame.init()
-    
+
     pygame.mixer.init()
     click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
-    
+
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 720, 720
-    WORLD_WIDTH, WORLD_HEIGHT = 1600, 720  # Increased width for horizontal scrolling
     PLAYER_WIDTH, PLAYER_HEIGHT = 50, 50
-    PLAYER_COLOR = (0, 0, 255)
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -10
     GRAVITY = 0.1
+    FRAME_RATE = 60
 
-    # Set up the display in fullscreen mode
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-    pygame.display.set_caption("World(test)")
+    # Set up the display
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Animated Sprite Sheet Example")
 
-    # Update constants based on actual screen size
-    SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
-    WORLD_WIDTH = int(WORLD_WIDTH * (SCREEN_HEIGHT / WORLD_HEIGHT))  # Adjust world width to maintain aspect ratio
-    WORLD_HEIGHT = SCREEN_HEIGHT
-
-    # Load and scale the background image to fit screen height while maintaining aspect ratio
+    # Load sprite sheet
     try:
-        background_image = pygame.image.load("assets/background1.png")
-        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, SCREEN_HEIGHT))
+        sprite_sheet = pygame.image.load("mc/mc_idle.png").convert_alpha()
     except pygame.error:
-        print("Error loading background image. Please check the path.")
+        print("Error loading sprite sheet. Please check the path.")
         pygame.quit()
         sys.exit()
+
+    # Function to extract frames from the sprite sheet
+    def extract_frames(sheet, frame_width, frame_height, num_frames):
+        frames = []
+        sheet_width, sheet_height = sheet.get_size()
+        for i in range(num_frames):
+            x = (i * frame_width) % sheet_width
+            y = (i * frame_width) // sheet_width * frame_height
+            frame = sheet.subsurface(pygame.Rect(x, y, frame_width, frame_height))
+            frames.append(frame)
+        return frames
+
+    # Extract frames from the sprite sheet
+    frame_width, frame_height = 48, 48  # Size of each frame in the sprite sheet
+    num_frames = 4  # Number of frames in the animation
+    frames = extract_frames(sprite_sheet, frame_width, frame_height, num_frames)
 
     # Player class
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super().__init__()
-            self.image = pygame.Surface((PLAYER_WIDTH, PLAYER_HEIGHT))
-            self.image.fill(PLAYER_COLOR)
+            self.image = frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
-            self.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT - 100
+            self.rect.y = SCREEN_HEIGHT - frame_height - 100
             self.velocity_y = 0
             self.on_ground = False
+            self.frame_index = 0
+            self.animation_speed = 0.1  # Control the speed of the animation
+            self.last_update = pygame.time.get_ticks()
 
-        def update(self, platforms):
+        def update(self):
             # Apply gravity
             self.velocity_y += GRAVITY
 
@@ -68,8 +78,8 @@ def main():
             # Boundary checks within the world
             if self.rect.left < 0:
                 self.rect.left = 0
-            if self.rect.right > WORLD_WIDTH:
-                self.rect.right = WORLD_WIDTH
+            if self.rect.right > SCREEN_WIDTH:
+                self.rect.right = SCREEN_WIDTH
             if self.rect.top < 0:
                 self.rect.top = 0
             if self.rect.bottom > SCREEN_HEIGHT:
@@ -77,8 +87,17 @@ def main():
                 self.velocity_y = 0
                 self.on_ground = True
 
+            # Update animation
+            now = pygame.time.get_ticks()
+            if now - self.last_update > 1000 / FRAME_RATE:
+                self.last_update = now
+                self.frame_index += self.animation_speed
+                if self.frame_index >= len(frames):
+                    self.frame_index = 0
+                self.image = frames[int(self.frame_index)]
+
     def draw_text(surface, text, size, color, x, y):
-        font = pygame.font.Font("assets/cyb3.ttf", 70)
+        font = pygame.font.Font("assets/cyb3.ttf", size)
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
@@ -149,9 +168,6 @@ def main():
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
 
-    # Camera position
-    camera_x = 0
-
     # Main game loop
     running = True
     clock = pygame.time.Clock()
@@ -165,24 +181,19 @@ def main():
                     pause_menu()
 
         # Update sprites
-        all_sprites.update([])  # No platforms
+        all_sprites.update()
 
-        # Adjust camera position to follow the player
-        camera_x = player.rect.x - SCREEN_WIDTH // 2
-        camera_x = max(0, min(WORLD_WIDTH - SCREEN_WIDTH, camera_x))
+        # Draw background color
+        screen.fill((0, 0, 0))
 
-        # Draw background image relative to camera position
-        screen.blit(background_image, (-camera_x, 0))
-
-        # Draw everything relative to camera position
-        for sprite in all_sprites:
-            screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
+        # Draw all sprites
+        all_sprites.draw(screen)
 
         # Update the display
         pygame.display.flip()
 
         # Cap the frame rate
-        clock.tick(60)
+        clock.tick(FRAME_RATE)
 
     pygame.quit()
     sys.exit()
