@@ -13,7 +13,7 @@ def main():
     PLAYER_WIDTH, PLAYER_HEIGHT = 200, 200  # Increased size to make the player larger
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -10
-    GRAVITY = 0.1
+    GRAVITY = 0.3
     FRAME_RATE = 60
 
     # Set up the display
