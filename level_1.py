@@ -13,10 +13,11 @@ def main():
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
     PLAYER_WIDTH, PLAYER_HEIGHT = 70, 70  # Increased size to make the player larger
     PLAYER_SPEED = 5
-    JUMP_VELOCITY = -15
-    GRAVITY = 0.5
+    JUMP_VELOCITY = -10
+    GRAVITY = 0.1
     FRAME_RATE = 60
     WORLD_WIDTH = 1600
+    PLAYER_HEALTH = 100  # Initial health value
 
     # Set up the display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -50,8 +51,58 @@ def main():
         sys.exit()
 
     # Extract and scale frames from the sprite sheets
-    idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)  # Adjust number of frames as needed
-    running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)  # Adjust number of frames as needed
+    idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+
+    # Define Mob class
+    class Mob(pygame.sprite.Sprite):
+        def __init__(self, x, y, frames):
+            super().__init__()
+            self.frames = frames
+            self.image = self.frames[0]
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y
+            self.speed = 3  # Adjust speed as needed
+            self.attack_damage = 10  # Damage inflicted on the player per attack
+            self.frame_index = 0
+            self.animation_speed = 0.1
+            self.last_update = pygame.time.get_ticks()
+
+        def update(self, player):
+            # Move towards the player
+            if self.rect.x < player.rect.x:
+                self.rect.x += self.speed
+            elif self.rect.x > player.rect.x:
+                self.rect.x -= self.speed
+
+            # Update animation
+            now = pygame.time.get_ticks()
+            if now - self.last_update > 1000 / (FRAME_RATE * self.animation_speed):
+                self.last_update = now
+                self.frame_index += 1
+                if self.frame_index >= len(self.frames):
+                    self.frame_index = 0
+                self.image = self.frames[self.frame_index]
+
+    # Load sprite sheet for mobs
+    try:
+        mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Idle.png").convert_alpha()
+    except pygame.error:
+        print("Error loading mobs sprite sheet. Please check the path.")
+        pygame.quit()
+        sys.exit()
+
+    # Extract and scale frames from the sprite sheet for mobs
+    mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+
+    # Create mobs
+    mob1 = Mob(500, SCREEN_HEIGHT - PLAYER_HEIGHT - 100, mob_frames)
+    mob2 = Mob(800, SCREEN_HEIGHT - PLAYER_HEIGHT - 100, mob_frames)
+
+    # Sprite group for mobs
+    mob_sprites = pygame.sprite.Group()
+    mob_sprites.add(mob1, mob2)
 
     # Player class
     class Player(pygame.sprite.Sprite):
@@ -66,10 +117,12 @@ def main():
             self.velocity_y = 0
             self.on_ground = False
             self.frame_index = 0
-            self.animation_speed = 0.1  # Control the speed of the animation
+            self.animation_speed = 0.1
             self.last_update = pygame.time.get_ticks()
             self.current_frames = self.idle_frames
-            self.direction = "right"  # Initial direction
+            self.direction = "right"
+            self.health = PLAYER_HEALTH  # Initialize health
+            self.max_health = PLAYER_HEALTH  # Maximum health
 
         def update(self):
             # Apply gravity
@@ -117,8 +170,23 @@ def main():
                 if self.direction == "right":
                     self.image = self.current_frames[self.frame_index]
                 elif self.direction == "left":
-                    # Flip the image horizontally
                     self.image = pygame.transform.flip(self.current_frames[self.frame_index], True, False)
+
+        def decrease_health(self, amount):
+            self.health -= amount
+            if self.health <= 0:
+                self.health = 0
+                # Implement game over logic here if needed
+
+        def draw_health_bar(self, surface, x, y):
+            # Calculate width of health bar
+            bar_length = 100
+            bar_height = 10
+            fill = (self.health / self.max_health) * bar_length
+            outline_rect = pygame.Rect(x, y, bar_length, bar_height)
+            fill_rect = pygame.Rect(x, y, fill, bar_height)
+            pygame.draw.rect(surface, (255, 0, 0), fill_rect)
+            pygame.draw.rect(surface, (255, 255, 255), outline_rect, 2)
 
     def draw_text(surface, text, size, color, x, y):
         font = pygame.font.Font("assets/cyb3.ttf", size)
@@ -187,7 +255,7 @@ def main():
 
     # Create player
     player = Player()
-    
+
     # Load the background image
     try:
         background_image = pygame.image.load("assets/Background1.png")
@@ -218,6 +286,7 @@ def main():
 
         # Update all sprites
         all_sprites.update()
+        mob_sprites.update(player)
 
         # Scroll the camera with the player
         camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
@@ -225,8 +294,15 @@ def main():
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
+
+        # Draw sprites
         for sprite in all_sprites:
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
+        for mob in mob_sprites:
+            screen.blit(mob.image, mob.rect.topleft - pygame.Vector2(camera_x, 0))
+
+        # Draw health bar
+        player.draw_health_bar(screen, 50, 30)
 
         pygame.display.flip()
         clock.tick(FRAME_RATE)  # Limit the frame rate
