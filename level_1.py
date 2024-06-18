@@ -1,5 +1,6 @@
 import pygame
 import sys
+from pygame import mixer
 
 def main():
     # Initialize Pygame
@@ -15,6 +16,7 @@ def main():
     JUMP_VELOCITY = -15
     GRAVITY = 0.5
     FRAME_RATE = 60
+    WORLD_WIDTH = 1600
 
     # Set up the display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -23,36 +25,6 @@ def main():
     # Update constants based on actual screen size
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
 
-    # Define stages
-    stages = [
-        {
-            "background": "assets/Background1.png",
-            "world_width": 1600,
-            "player_start": (100, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)
-        },
-        {
-            "background": "assets/Background2.png",
-            "world_width": 2000,
-            "player_start": (100, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)
-        }
-    ]
-
-    current_stage_index = 0
-
-    # Function to load a stage
-    def load_stage(index, player):
-        stage = stages[index]
-        try:
-            background_image = pygame.image.load(stage["background"])
-            background_image = pygame.transform.scale(background_image, (stage["world_width"], SCREEN_HEIGHT))
-        except pygame.error:
-            print("Error loading background image. Please check the path.")
-            pygame.quit()
-            sys.exit()
-
-        player.rect.topleft = stage["player_start"]
-        return background_image, stage["world_width"]
-    
     # Function to extract frames from the sprite sheet and scale them
     def extract_frames(sheet, frame_width, frame_height, num_frames, scale_width, scale_height):
         frames = []
@@ -123,18 +95,14 @@ def main():
             # Boundary checks within the world
             if self.rect.left < 0:
                 self.rect.left = 0
-            if self.rect.right > world_width:
-                self.rect.right = world_width
+            if self.rect.right > WORLD_WIDTH:
+                self.rect.right = WORLD_WIDTH
             if self.rect.top < 0:
                 self.rect.top = 0
             if self.rect.bottom > SCREEN_HEIGHT:
                 self.rect.bottom = SCREEN_HEIGHT
                 self.velocity_y = 0
                 self.on_ground = True
-
-            # Check if player reached the end of the stage
-            if self.rect.right >= world_width:
-                advance_to_next_stage()
 
             # Update animation
             now = pygame.time.get_ticks()
@@ -144,19 +112,6 @@ def main():
                 if self.frame_index >= len(self.current_frames):
                     self.frame_index = 0
                 self.image = self.current_frames[self.frame_index]
-
-    def advance_to_next_stage():
-        nonlocal current_stage_index, player
-        current_stage_index += 1
-        if current_stage_index >= len(stages):
-            current_stage_index = 0  # Loop back to the first stage or handle game end
-            load_current_stage(player)
-
-    def load_current_stage(player):
-        nonlocal background_image, world_width
-        background_image, world_width = load_stage(current_stage_index, player)
-        return background_image, world_width
-
 
     def draw_text(surface, text, size, color, x, y):
         font = pygame.font.Font("assets/cyb3.ttf", size)
@@ -226,9 +181,14 @@ def main():
     # Create player
     player = Player()
     
-    # Load the initial stage
-    load_current_stage(player)
-    background_image, world_width = load_current_stage(player)
+    # Load the background image
+    try:
+        background_image = pygame.image.load("assets/Background1.png")
+        background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, SCREEN_HEIGHT))
+    except pygame.error:
+        print("Error loading background image. Please check the path.")
+        pygame.quit()
+        sys.exit()
 
     # Sprite groups
     all_sprites = pygame.sprite.Group()
@@ -253,7 +213,7 @@ def main():
         all_sprites.update()
 
         # Scroll the camera with the player
-        camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, world_width - SCREEN_WIDTH))
+        camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
 
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
