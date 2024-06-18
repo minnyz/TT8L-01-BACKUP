@@ -1,5 +1,6 @@
 import pygame
 import sys
+import random
 from pygame import mixer
 
 def main():
@@ -12,12 +13,14 @@ def main():
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
     PLAYER_WIDTH, PLAYER_HEIGHT = 70, 70  # Increased size to make the player larger
-    PLAYER_SPEED = 5
-    JUMP_VELOCITY = -10
+    PLAYER_SPEED = 3
+    JUMP_VELOCITY = -5
     GRAVITY = 0.1
     FRAME_RATE = 60
     WORLD_WIDTH = 1600
     PLAYER_HEALTH = 100  # Initial health value
+    HEALTH_BAR_DISPLAY_TIME = 2000  # Time in milliseconds to show the health bar after being attacked
+    MOB_ATTACK_COOLDOWN = 1000  # Cooldown time in milliseconds for mob attacks
 
     # Set up the display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -63,18 +66,31 @@ def main():
             self.rect = self.image.get_rect()
             self.rect.x = x
             self.rect.y = y
-            self.speed = 3  # Adjust speed as needed
+            self.speed = 0.5  # Adjust speed as needed
             self.attack_damage = 10  # Damage inflicted on the player per attack
             self.frame_index = 0
             self.animation_speed = 0.1
             self.last_update = pygame.time.get_ticks()
+            self.health = 50  # Initial health value
+            self.max_health = 50  # Maximum health value
+            self.last_attacked_time = 0  # Time when the mob was last attacked
+            self.last_attack_time = 0  # Time when the mob last attacked
 
         def update(self, player):
-            # Move towards the player
-            if self.rect.x < player.rect.x:
-                self.rect.x += self.speed
-            elif self.rect.x > player.rect.x:
-                self.rect.x -= self.speed
+            # Check if player is nearby
+            if self.is_player_nearby(player):
+                # Move towards the player
+                if self.rect.x < player.rect.x:
+                    self.rect.x += self.speed
+                elif self.rect.x > player.rect.x:
+                    self.rect.x -= self.speed
+
+                # Attack the player if within range and cooldown period has passed
+                if self.rect.colliderect(player.rect):
+                    now = pygame.time.get_ticks()
+                    if now - self.last_attack_time > MOB_ATTACK_COOLDOWN:
+                        player.decrease_health(self.attack_damage)
+                        self.last_attack_time = now
 
             # Update animation
             now = pygame.time.get_ticks()
@@ -84,6 +100,29 @@ def main():
                 if self.frame_index >= len(self.frames):
                     self.frame_index = 0
                 self.image = self.frames[self.frame_index]
+
+        def is_player_nearby(self, player):
+            # Define a distance threshold for "nearby"
+            distance_threshold = 200  # Adjust as needed
+            return abs(self.rect.centerx - player.rect.centerx) < distance_threshold
+
+        def decrease_health(self, amount):
+            self.health -= amount
+            self.last_attacked_time = pygame.time.get_ticks()
+            if self.health <= 0:
+                self.kill()  # Remove the mob from all sprite groups
+
+        def draw_health_bar(self, surface):
+            now = pygame.time.get_ticks()
+            if now - self.last_attacked_time < HEALTH_BAR_DISPLAY_TIME:
+                # Calculate width of health bar
+                bar_length = 50
+                bar_height = 5
+                fill = (self.health / self.max_health) * bar_length
+                outline_rect = pygame.Rect(self.rect.x, self.rect.y - 10, bar_length, bar_height)
+                fill_rect = pygame.Rect(self.rect.x, self.rect.y - 10, fill, bar_height)
+                pygame.draw.rect(surface, (255, 0, 0), fill_rect)
+                pygame.draw.rect(surface, (255, 255, 255), outline_rect, 1)
 
     # Load sprite sheet for mobs
     try:
@@ -98,11 +137,10 @@ def main():
 
     # Create mobs
     mob1 = Mob(500, SCREEN_HEIGHT - PLAYER_HEIGHT - 100, mob_frames)
-    mob2 = Mob(800, SCREEN_HEIGHT - PLAYER_HEIGHT - 100, mob_frames)
 
     # Sprite group for mobs
     mob_sprites = pygame.sprite.Group()
-    mob_sprites.add(mob1, mob2)
+    mob_sprites.add(mob1)
 
     # Player class
     class Player(pygame.sprite.Sprite):
@@ -123,6 +161,8 @@ def main():
             self.direction = "right"
             self.health = PLAYER_HEALTH  # Initialize health
             self.max_health = PLAYER_HEALTH  # Maximum health
+            self.attack_cooldown = 500  # Cooldown time in milliseconds
+            self.last_attack_time = 0  # Time when the player last attacked
 
         def update(self):
             # Apply gravity
@@ -141,9 +181,8 @@ def main():
             else:
                 self.current_frames = self.idle_frames
 
-            if keys[pygame.K_SPACE] and self.on_ground:
-                self.velocity_y = JUMP_VELOCITY
-                self.on_ground = False
+            if keys[pygame.K_SPACE]:
+                self.jump()
 
             # Update vertical position
             self.rect.y += self.velocity_y
@@ -171,6 +210,18 @@ def main():
                     self.image = self.current_frames[self.frame_index]
                 elif self.direction == "left":
                     self.image = pygame.transform.flip(self.current_frames[self.frame_index], True, False)
+
+        def jump(self):
+            if self.on_ground:
+                self.velocity_y = JUMP_VELOCITY
+                self.on_ground = False
+        
+        def attack(self):
+            now = pygame.time.get_ticks()
+            if now - self.last_attack_time > self.attack_cooldown:
+                self.last_attack_time = now
+                return True
+            return False
 
         def decrease_health(self, amount):
             self.health -= amount
@@ -283,10 +334,20 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pause_menu()
+                elif event.key == pygame.K_SPACE:
+                    if player.attack():
+                        for mob in mob_sprites:
+                            if player.rect.colliderect(mob.rect):
+                                mob.decrease_health(10)  # Adjust damage as needed
 
         # Update all sprites
         all_sprites.update()
         mob_sprites.update(player)
+
+        # Remove killed mobs from sprite group
+        for mob in mob_sprites:
+            if not mob.alive():
+                mob_sprites.remove(mob)
 
         # Scroll the camera with the player
         camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
@@ -300,6 +361,7 @@ def main():
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
         for mob in mob_sprites:
             screen.blit(mob.image, mob.rect.topleft - pygame.Vector2(camera_x, 0))
+            mob.draw_health_bar(screen)
 
         # Draw health bar
         player.draw_health_bar(screen, 50, 30)
@@ -311,3 +373,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
