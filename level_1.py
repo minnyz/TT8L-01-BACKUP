@@ -26,12 +26,12 @@ def main():
     # Define stages
     stages = [
         {
-            "background": "assets/background1.png",
+            "background": "assets/Background1.png",
             "world_width": 1600,
             "player_start": (100, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)
         },
         {
-            "background": "assets/background2.png",
+            "background": "assets/Background2.png",
             "world_width": 2000,
             "player_start": (100, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)
         }
