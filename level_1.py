@@ -227,7 +227,12 @@ def main():
             self.health -= amount
             if self.health <= 0:
                 self.health = 0
-                # Implement game over logic here if needed
+                self.game_over()
+
+        def game_over(self):
+            global running
+            running = False
+            show_game_over_screen()
 
         def draw_health_bar(self, surface, x, y):
             # Calculate width of health bar
@@ -304,6 +309,43 @@ def main():
             pygame.display.flip()
             clock.tick(15)  # Limit the loop to 15 frames per second
 
+    def show_game_over_screen():
+        game_over = True
+        while game_over:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        main()  # Restart the game
+                    elif event.key == pygame.K_ESCAPE:
+                        import menu
+                        menu.main_menu()  # Go back to main menu
+
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Left mouse button
+                        mouse_x, mouse_y = event.pos
+                        # Check if the restart button is clicked
+                        if 540 <= mouse_x <= 740 and 400 <= mouse_y <= 440:
+                            main()  # Restart the game
+                        elif 540 <= mouse_x <= 740 and 460 <= mouse_y <= 500:
+                            import menu
+                            menu.main_menu()  # Go back to main menu
+
+            screen.fill((0, 0, 0))  # Fill the screen with black
+            draw_text(screen, 'You Died', 74, (255, 0, 0), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+
+            # Draw restart button
+            pygame.draw.rect(screen, (0, 255, 0), (540, 400, 200, 40))  # Restart button
+            pygame.draw.rect(screen, (255, 0, 0), (540, 460, 200, 40))  # Main menu button
+
+            draw_text(screen, 'Restart', 36, (0, 0, 0), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20)
+            draw_text(screen, 'Restart', 36, (0, 0, 0), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40)
+
+            pygame.display.flip()
+            clock.tick(15)  # Limit the loop to 15 frames per second
+
     # Create player
     player = Player()
 
@@ -349,6 +391,10 @@ def main():
             if not mob.alive():
                 mob_sprites.remove(mob)
 
+        # Check if player is alive
+        if player.health <= 0:
+            player.game_over()
+
         # Scroll the camera with the player
         camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
 
@@ -373,5 +419,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
