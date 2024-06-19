@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+import math
 from pygame import mixer
 
 def main():
@@ -69,10 +70,47 @@ def main():
 
         def update(self):
             pass  # Platform does not need to update itself
-        
+    
+    class Bullet(pygame.sprite.Sprite):
+        def __init__(self, x, y, target_x, target_y, speed, image):
+            super().__init__()
+            self.image = image
+            self.rect = self.image.get_rect()
+            self.rect.center = (x, y)
+            self.speed = speed
+            
+            # Calculate direction towards target
+            dx = target_x - x
+            dy = target_y - y
+            dist = math.hypot(dx, dy)
+            if dist != 0:
+                self.dx = dx / dist * speed
+                self.dy = dy / dist * speed
+            else:
+                self.dx, self.dy = 0, 0
+
+        def update(self):
+            self.rect.x += self.dx
+            self.rect.y += self.dy
+            
+            # Remove the bullet if it goes out of the screen
+            if self.rect.x < 0 or self.rect.x > WORLD_WIDTH or self.rect.y < 0 or self.rect.y > SCREEN_HEIGHT:
+                self.kill()
+
+
+
+    # Load bullet image
+    try:
+        bullet_image = pygame.image.load("assets/mobsLow/1/Drop.png").convert_alpha()
+        bullet_image = pygame.transform.scale(bullet_image, (60, 40))  # Scale as needed
+    except pygame.error:
+        print("Error loading bullet image. Please check the path.")
+        pygame.quit()
+        sys.exit()
+    
     # Define Mob class
     class Mob(pygame.sprite.Sprite):
-        def __init__(self, x, y, frames):
+        def __init__(self, x, y, frames, bullet_image):
             super().__init__()
             self.frames = frames
             self.image = self.frames[0]
@@ -88,8 +126,9 @@ def main():
             self.max_health = 50  # Maximum health value
             self.last_attacked_time = 0  # Time when the mob was last attacked
             self.last_attack_time = 0  # Time when the mob last attacked
+            self.bullet_image = bullet_image # Bullet image
 
-        def update(self, player):
+        def update(self, player, bullet_group):
             # Check if player is nearby
             if self.is_player_nearby(player):
                 # Move towards the player
@@ -98,13 +137,12 @@ def main():
                 elif self.rect.x > player.rect.x:
                     self.rect.x -= self.speed
 
-                # Attack the player if within range and cooldown period has passed
-                if self.rect.colliderect(player.rect):
-                    now = pygame.time.get_ticks()
-                    if now - self.last_attack_time > MOB_ATTACK_COOLDOWN:
-                        player.decrease_health(self.attack_damage)
-                        self.last_attack_time = now
-
+                # Shoot bullets if within range and cooldown period has passed
+                now = pygame.time.get_ticks()
+                if now - self.last_attack_time > MOB_ATTACK_COOLDOWN:
+                    self.shoot(player, bullet_group)
+                    self.last_attack_time = now
+            pass 
             # Update animation
             now = pygame.time.get_ticks()
             if now - self.last_update > 1000 / (FRAME_RATE * self.animation_speed):
@@ -113,10 +151,15 @@ def main():
                 if self.frame_index >= len(self.frames):
                     self.frame_index = 0
                 self.image = self.frames[self.frame_index]
-
+        
+        def shoot(self, player, bullet_group):
+                    target_x, target_y = player.rect.centerx, player.rect.centery
+                    bullet = Bullet(self.rect.centerx, self.rect.centery, target_x, target_y, 5, self.bullet_image)
+                    bullet_group.add(bullet)
+        
         def is_player_nearby(self, player):
             # Define a distance threshold for "nearby"
-            distance_threshold = 200  # Adjust as needed
+            distance_threshold = 400  # Adjust as needed
             return abs(self.rect.centerx - player.rect.centerx) < distance_threshold
 
         def decrease_health(self, amount):
@@ -125,21 +168,23 @@ def main():
             if self.health <= 0:
                 self.kill()  # Remove the mob from all sprite groups
 
-        def draw_health_bar(self, surface):
+        def draw_health_bar(self, surface, camera_x):
             now = pygame.time.get_ticks()
             if now - self.last_attacked_time < HEALTH_BAR_DISPLAY_TIME:
                 # Calculate width of health bar
                 bar_length = 50
                 bar_height = 5
                 fill = (self.health / self.max_health) * bar_length
-                outline_rect = pygame.Rect(self.rect.x, self.rect.y - 10, bar_length, bar_height)
-                fill_rect = pygame.Rect(self.rect.x, self.rect.y - 10, fill, bar_height)
+                outline_rect = pygame.Rect(self.rect.x - camera_x, self.rect.y - 10, bar_length, bar_height)
+                fill_rect = pygame.Rect(self.rect.x - camera_x, self.rect.y - 10, fill, bar_height)
                 pygame.draw.rect(surface, (255, 0, 0), fill_rect)
                 pygame.draw.rect(surface, (255, 255, 255), outline_rect, 1)
 
+        
+
     # Load sprite sheet for mobs
     try:
-        mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Idle.png").convert_alpha()
+        mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Walk.png").convert_alpha()
     except pygame.error:
         print("Error loading mobs sprite sheet. Please check the path.")
         pygame.quit()
@@ -149,7 +194,7 @@ def main():
     mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
 
     # Create mobs
-    mob1 = Mob(500, SCREEN_HEIGHT - PLAYER_HEIGHT - 100, mob_frames)
+    mob1 = Mob(500, SCREEN_HEIGHT - PLAYER_HEIGHT - 100, mob_frames, bullet_image)
 
     # Sprite group for mobs
     mob_sprites = pygame.sprite.Group()
@@ -389,8 +434,8 @@ def main():
     platform_sprites = pygame.sprite.Group()
     
     # Create platforms
-    platform1 = Platform(300, SCREEN_HEIGHT - 150, 200, 20)
-    platform2 = Platform(600, SCREEN_HEIGHT - 300, 200, 20)
+    platform1 = Platform(300, SCREEN_HEIGHT - 200, 100, 20)
+    platform2 = Platform(600, SCREEN_HEIGHT - 300, 100, 20)
     platform_sprites.add(platform1, platform2)
      
     # Load the background image
@@ -408,6 +453,9 @@ def main():
 
     # Camera position
     camera_x = 0
+    
+    # Create bullet group
+    bullet_group = pygame.sprite.Group()
 
     # Main game loop
     running = True
@@ -428,8 +476,8 @@ def main():
 
         # Update all sprites
         all_sprites.update()
-        mob_sprites.update(player)
-
+        mob_sprites.update(player, bullet_group)
+        
         # Remove killed mobs from sprite group
         for mob in mob_sprites:
             if not mob.alive():
@@ -445,19 +493,20 @@ def main():
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
-        
-        
+
         # Draw platforms
         for platform in platform_sprites:
             screen.blit(platform.image, platform.rect.topleft - pygame.Vector2(camera_x, 0))
-        
+
         # Draw sprites
         for sprite in all_sprites:
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
         for mob in mob_sprites:
             screen.blit(mob.image, mob.rect.topleft - pygame.Vector2(camera_x, 0))
-            mob.draw_health_bar(screen)
-
+            mob.draw_health_bar(screen, camera_x)
+        for bullet in bullet_group:
+            screen.blit(bullet.image, bullet.rect.topleft - pygame.Vector2(camera_x, 0))
+        
         # Draw health bar
         player.draw_health_bar(screen, 50, 30)
 
