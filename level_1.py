@@ -46,6 +46,7 @@ def main():
         running_sprite_sheet = pygame.image.load("mc/mc_run.png").convert_alpha()
         running_left_sprite_sheet = pygame.transform.flip(running_sprite_sheet, True, False)  # Flipped version for running left
         jump_sprite_sheet = pygame.image.load("mc/mc_jump.png").convert_alpha()
+        jump_left_sprite_sheet = pygame.transform.flip(jump_sprite_sheet, True, False)  # Flipped version for running left
         punch_sprite_sheet = pygame.image.load("mc/mc_punch.png").convert_alpha()
     except pygame.error:
         print("Error loading sprite sheets. Please check the path.")
@@ -57,6 +58,7 @@ def main():
     running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     running_frames_left = extract_frames(running_left_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     jump_frames = extract_frames(jump_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    jump_frames_left = extract_frames(jump_left_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     punch_frames = extract_frames(punch_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
 
     # Player class
@@ -67,6 +69,7 @@ def main():
             self.running_frames = running_frames
             self.running_frames_left = running_frames_left
             self.jump_frames = jump_frames
+            self.jump_frames_left = jump_frames_left  # New flipped jump frames
             self.punch_frames = punch_frames
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
@@ -89,18 +92,24 @@ def main():
                 self.rect.x -= PLAYER_SPEED
                 if self.on_ground:
                     self.current_frames = self.running_frames_left
+                else:
+                    self.current_frames = self.jump_frames_left
             elif keys[pygame.K_RIGHT]:
                 self.rect.x += PLAYER_SPEED
                 if self.on_ground:
                     self.current_frames = self.running_frames
+                else:
+                    self.current_frames = self.jump_frames
             else:
                 if self.on_ground:
                     self.current_frames = self.idle_frames
+                else:
+                    self.current_frames = self.jump_frames if keys[pygame.K_RIGHT] else self.jump_frames_left
 
             if keys[pygame.K_SPACE] and self.on_ground:
                 self.velocity_y = JUMP_VELOCITY
                 self.on_ground = False
-                self.current_frames = self.jump_frames
+                self.current_frames = self.jump_frames if not keys[pygame.K_LEFT] else self.jump_frames_left
 
             # Update vertical position
             self.rect.y += self.velocity_y
@@ -118,7 +127,7 @@ def main():
                 self.on_ground = True
 
                 # Reset to idle or running animation after landing
-                if self.current_frames == self.jump_frames:
+                if self.current_frames in [self.jump_frames, self.jump_frames_left]:
                     self.current_frames = self.idle_frames if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) else (self.running_frames_left if keys[pygame.K_LEFT] else self.running_frames)
 
             # Update animation
