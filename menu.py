@@ -16,7 +16,7 @@ class Slider:
         self.height = height
         self.handle_width = handle_width
         self.pos = initial_pos
-        self.dragging = False
+        self.dragging = False 
 
     def draw(self, screen):
         pygame.draw.rect(screen, SLIDER_COLOR, (self.x, self.y, self.width, self.height))
@@ -321,7 +321,7 @@ def main_menu():
                     import level_1
                     level_1.main()
                 if OPTIONS_BUTTON.checkForInput(MENU_MOUSE_POS):
-                    click_sound.play()
+                    click_sound.play() 
                     options()
                 if QUIT_BUTTON.checkForInput(MENU_MOUSE_POS):
                     pygame.quit()
