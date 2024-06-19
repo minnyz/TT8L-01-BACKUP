@@ -40,10 +40,11 @@ def main():
             frames.append(frame)
         return frames
 
-    # Load sprite sheets for idle and running animations
+    # Load sprite sheets for idle, running, and jumping animations
     try:
         idle_sprite_sheet = pygame.image.load("mc/mc_idle.png").convert_alpha()
         running_sprite_sheet = pygame.image.load("mc/mc_run.png").convert_alpha()
+        jump_sprite_sheet = pygame.image.load("mc/mc_jump.png").convert_alpha()
     except pygame.error:
         print("Error loading sprite sheets. Please check the path.")
         pygame.quit()
@@ -52,6 +53,7 @@ def main():
     # Extract and scale frames from the sprite sheets
     idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    jump_frames = extract_frames(jump_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
 
     # Player class
     class Player(pygame.sprite.Sprite):
@@ -59,6 +61,7 @@ def main():
             super().__init__()
             self.idle_frames = idle_frames
             self.running_frames = running_frames
+            self.jump_frames = jump_frames
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
@@ -78,16 +81,20 @@ def main():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_LEFT]:
                 self.rect.x -= PLAYER_SPEED
-                self.current_frames = self.running_frames
+                if self.on_ground:
+                    self.current_frames = self.running_frames
             elif keys[pygame.K_RIGHT]:
                 self.rect.x += PLAYER_SPEED
-                self.current_frames = self.running_frames
+                if self.on_ground:
+                    self.current_frames = self.running_frames
             else:
-                self.current_frames = self.idle_frames
+                if self.on_ground:
+                    self.current_frames = self.idle_frames
 
             if keys[pygame.K_SPACE] and self.on_ground:
                 self.velocity_y = JUMP_VELOCITY
                 self.on_ground = False
+                self.current_frames = self.jump_frames
 
             # Update vertical position
             self.rect.y += self.velocity_y
@@ -103,6 +110,10 @@ def main():
                 self.rect.bottom = SCREEN_HEIGHT
                 self.velocity_y = 0
                 self.on_ground = True
+
+                # Reset to idle or running animation after landing
+                if self.current_frames == self.jump_frames:
+                    self.current_frames = self.idle_frames if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) else self.running_frames
 
             # Update animation
             now = pygame.time.get_ticks()
