@@ -45,6 +45,7 @@ def main():
         idle_sprite_sheet = pygame.image.load("mc/mc_idle.png").convert_alpha()
         running_sprite_sheet = pygame.image.load("mc/mc_run.png").convert_alpha()
         jump_sprite_sheet = pygame.image.load("mc/mc_jump.png").convert_alpha()
+        punch_sprite_sheet = pygame.image.load("mc/mc_punch.png").convert_alpha()
     except pygame.error:
         print("Error loading sprite sheets. Please check the path.")
         pygame.quit()
@@ -54,6 +55,7 @@ def main():
     idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     jump_frames = extract_frames(jump_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    punch_frames = extract_frames(punch_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
 
     # Player class
     class Player(pygame.sprite.Sprite):
@@ -62,6 +64,7 @@ def main():
             self.idle_frames = idle_frames
             self.running_frames = running_frames
             self.jump_frames = jump_frames
+            self.punch_frames = punch_frames
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
@@ -72,6 +75,7 @@ def main():
             self.animation_speed = 0.1  # Control the speed of the animation
             self.last_update = pygame.time.get_ticks()
             self.current_frames = self.idle_frames
+            self.is_punching = False  # Flag to check if punching
 
         def update(self):
             # Apply gravity
@@ -81,20 +85,25 @@ def main():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_LEFT]:
                 self.rect.x -= PLAYER_SPEED
-                if self.on_ground:
+                if self.on_ground and not self.is_punching:
                     self.current_frames = self.running_frames
             elif keys[pygame.K_RIGHT]:
                 self.rect.x += PLAYER_SPEED
-                if self.on_ground:
+                if self.on_ground and not self.is_punching:
                     self.current_frames = self.running_frames
             else:
-                if self.on_ground:
+                if self.on_ground and not self.is_punching:
                     self.current_frames = self.idle_frames
 
             if keys[pygame.K_SPACE] and self.on_ground:
                 self.velocity_y = JUMP_VELOCITY
                 self.on_ground = False
                 self.current_frames = self.jump_frames
+
+            if keys[pygame.K_z] and not self.is_punching:
+                self.is_punching = True
+                self.current_frames = self.punch_frames
+                self.frame_index = 0  # Restart punch animation
 
             # Update vertical position
             self.rect.y += self.velocity_y
@@ -121,6 +130,9 @@ def main():
                 self.last_update = now
                 self.frame_index += 1
                 if self.frame_index >= len(self.current_frames):
+                    if self.is_punching:
+                        self.is_punching = False
+                        self.current_frames = self.idle_frames if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) else self.running_frames
                     self.frame_index = 0
                 self.image = self.current_frames[self.frame_index]
 
