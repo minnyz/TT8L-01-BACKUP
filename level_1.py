@@ -11,7 +11,7 @@ def main():
 
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 720, 720
-    PLAYER_WIDTH, PLAYER_HEIGHT = 200, 200  # Increased size to make the player larger
+    PLAYER_WIDTH, PLAYER_HEIGHT = 200, 200
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -15
     GRAVITY = 0.5
@@ -50,8 +50,8 @@ def main():
         sys.exit()
 
     # Extract and scale frames from the sprite sheets
-    idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)  # Adjust number of frames as needed
-    running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)  # Adjust number of frames as needed
+    idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
 
     # Player class
     class Player(pygame.sprite.Sprite):
@@ -218,7 +218,7 @@ def main():
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
-        for sprite in all_sprites:
+        for sprite in all_sprites: #Make sprite scroll
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
 
         pygame.display.flip()
