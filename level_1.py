@@ -199,6 +199,9 @@ def main():
 
             # Update vertical position
             self.rect.y += self.velocity_y
+            
+            # Check for platform collisions
+            self.check_platform_collisions()
 
             # Boundary checks within the world
             if self.rect.left < 0:
@@ -389,11 +392,7 @@ def main():
     platform1 = Platform(300, SCREEN_HEIGHT - 150, 200, 20)
     platform2 = Platform(600, SCREEN_HEIGHT - 300, 200, 20)
     platform_sprites.add(platform1, platform2)
-    
-    platform_sprites = pygame.sprite.Group()
-    platform_sprites.add(platform1)
-    platform_sprites.add(platform2)
-    
+     
     # Load the background image
     try:
         background_image = pygame.image.load("assets/Background1.png")
@@ -446,7 +445,11 @@ def main():
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
-        platform_sprites.draw(screen)
+        
+        
+        # Draw platforms
+        for platform in platform_sprites:
+            screen.blit(platform.image, platform.rect.topleft - pygame.Vector2(camera_x, 0))
         
         # Draw sprites
         for sprite in all_sprites:
