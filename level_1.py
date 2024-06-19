@@ -14,7 +14,7 @@ def main():
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
     PLAYER_WIDTH, PLAYER_HEIGHT = 70, 70  # Increased size to make the player larger
     PLAYER_SPEED = 3
-    JUMP_VELOCITY = -5
+    JUMP_VELOCITY = -6.5
     GRAVITY = 0.1
     FRAME_RATE = 60
     WORLD_WIDTH = 1600
@@ -57,6 +57,19 @@ def main():
     idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
 
+    # Define Platform class
+    class Platform(pygame.sprite.Sprite):
+        def __init__(self, x, y, width, height):
+            super().__init__()
+            self.image = pygame.Surface((width, height))
+            self.image.fill((139, 69, 19))  # Brown color for the platform
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y
+
+        def update(self):
+            pass  # Platform does not need to update itself
+        
     # Define Mob class
     class Mob(pygame.sprite.Sprite):
         def __init__(self, x, y, frames):
@@ -141,7 +154,7 @@ def main():
     # Sprite group for mobs
     mob_sprites = pygame.sprite.Group()
     mob_sprites.add(mob1)
-
+    
     # Player class
     class Player(pygame.sprite.Sprite):
         def __init__(self):
@@ -216,6 +229,26 @@ def main():
                 self.velocity_y = JUMP_VELOCITY
                 self.on_ground = False
         
+        def check_platform_collisions(self):
+            collided_platforms = pygame.sprite.spritecollide(self, platform_sprites, False)
+            if collided_platforms:
+                for platform in collided_platforms:
+                    if self.rect.bottom > platform.rect.top and self.rect.bottom < platform.rect.bottom:
+                        self.rect.bottom = platform.rect.top
+                        self.velocity_y = 0
+                        self.on_ground = True
+
+            # Check for collisions with platforms
+            platform_hits = pygame.sprite.spritecollide(self, platform_sprites, False)
+            for platform in platform_hits:
+                if self.velocity_y > 0:  # Falling down
+                    self.rect.bottom = platform.rect.top
+                    self.velocity_y = 0
+                    self.on_ground = True
+                elif self.velocity_y < 0:  # Jumping up
+                    self.rect.top = platform.rect.bottom
+                    self.velocity_y = 0
+        
         def attack(self):
             now = pygame.time.get_ticks()
             if now - self.last_attack_time > self.attack_cooldown:
@@ -271,7 +304,7 @@ def main():
                     elif event.key == pygame.K_RETURN:
                         if selected_item == 0:  # Resume
                             paused = False
-                        elif selected_item == 1:  # Quit
+                        elif selected_item == 1:  #Main Menu
                             import menu
                             menu.main_menu()
                 elif event.type == pygame.MOUSEMOTION:
@@ -292,7 +325,7 @@ def main():
                                 click_sound.play()
                                 if i == 0:  # Resume
                                     paused = False
-                                elif i == 1:  # Quit
+                                elif i == 1:  # Main Menu
                                     import menu
                                     menu.main_menu()
 
@@ -348,7 +381,19 @@ def main():
 
     # Create player
     player = Player()
-
+    
+     # Sprite group for platforms
+    platform_sprites = pygame.sprite.Group()
+    
+    # Create platforms
+    platform1 = Platform(300, SCREEN_HEIGHT - 150, 200, 20)
+    platform2 = Platform(600, SCREEN_HEIGHT - 300, 200, 20)
+    platform_sprites.add(platform1, platform2)
+    
+    platform_sprites = pygame.sprite.Group()
+    platform_sprites.add(platform1)
+    platform_sprites.add(platform2)
+    
     # Load the background image
     try:
         background_image = pygame.image.load("assets/Background1.png")
@@ -401,7 +446,8 @@ def main():
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
-
+        platform_sprites.draw(screen)
+        
         # Draw sprites
         for sprite in all_sprites:
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
