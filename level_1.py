@@ -18,6 +18,7 @@ def main():
     GRAVITY = 0.5
     FRAME_RATE = 60
     WORLD_WIDTH = 1600
+    PLAYER_MAX_HEALTH = 100
 
     # Set up the display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -44,11 +45,14 @@ def main():
     # Load sprite sheets for idle, running, jumping, and punching animations
     try:
         idle_sprite_sheet = pygame.image.load("mc/mc_idle.png").convert_alpha()
+        idle_left_sprite_sheet = pygame.transform.flip(idle_sprite_sheet, True, False)  # Flipped version for idle left
         running_sprite_sheet = pygame.image.load("mc/mc_run.png").convert_alpha()
         running_left_sprite_sheet = pygame.transform.flip(running_sprite_sheet, True, False)  # Flipped version for running left
         jump_sprite_sheet = pygame.image.load("mc/mc_jump.png").convert_alpha()
-        jump_left_sprite_sheet = pygame.transform.flip(jump_sprite_sheet, True, False)  # Flipped version for running left
+        jump_left_sprite_sheet = pygame.transform.flip(jump_sprite_sheet, True, False)  # Flipped version for jumping left
         punch_sprite_sheet = pygame.image.load("mc/mc_punch.png").convert_alpha()
+        punch_left_sprite_sheet = pygame.transform.flip(punch_sprite_sheet, True, False)  # Flipped version for punching left
+        death_sprite_sheet = pygame.image.load("mc/mc_death.png").convert_alpha()
     except pygame.error:
         print("Error loading sprite sheets. Please check the path.")
         pygame.quit()
@@ -56,22 +60,27 @@ def main():
 
     # Extract and scale frames from the sprite sheets
     idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    idle_frames_left = extract_frames(idle_left_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     running_frames_left = extract_frames(running_left_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     jump_frames = extract_frames(jump_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     jump_frames_left = extract_frames(jump_left_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     punch_frames = extract_frames(punch_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    punch_frames_left = extract_frames(punch_left_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    death_frames = extract_frames(death_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
 
     # Player class
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super().__init__()
             self.idle_frames = idle_frames
+            self.idle_frames_left = idle_frames_left
             self.running_frames = running_frames
             self.running_frames_left = running_frames_left
             self.jump_frames = jump_frames
-            self.jump_frames_left = jump_frames_left  # New flipped jump frames
+            self.jump_frames_left = jump_frames_left
             self.punch_frames = punch_frames
+            self.punch_frames_left = punch_frames_left
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
@@ -82,6 +91,8 @@ def main():
             self.animation_speed = 0.1  # Control the speed of the animation
             self.last_update = pygame.time.get_ticks()
             self.current_frames = self.idle_frames
+            self.facing_left = False
+            self.health = PLAYER_MAX_HEALTH
 
         def update(self):
             # Apply gravity
@@ -91,26 +102,31 @@ def main():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_LEFT]:
                 self.rect.x -= PLAYER_SPEED
+                self.facing_left = True
                 if self.on_ground:
                     self.current_frames = self.running_frames_left
                 else:
                     self.current_frames = self.jump_frames_left
             elif keys[pygame.K_RIGHT]:
                 self.rect.x += PLAYER_SPEED
+                self.facing_left = False
                 if self.on_ground:
                     self.current_frames = self.running_frames
                 else:
                     self.current_frames = self.jump_frames
             else:
                 if self.on_ground:
-                    self.current_frames = self.idle_frames
+                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
                 else:
-                    self.current_frames = self.jump_frames if keys[pygame.K_RIGHT] else self.jump_frames_left
+                    self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
 
             if keys[pygame.K_SPACE] and self.on_ground:
                 self.velocity_y = JUMP_VELOCITY
                 self.on_ground = False
-                self.current_frames = self.jump_frames if not keys[pygame.K_LEFT] else self.jump_frames_left
+                self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
+
+            if keys[pygame.K_z] and self.on_ground:
+                self.current_frames = self.punch_frames if not self.facing_left else self.punch_frames_left
 
             # Update vertical position
             self.rect.y += self.velocity_y
@@ -129,7 +145,7 @@ def main():
 
                 # Reset to idle or running animation after landing
                 if self.current_frames in [self.jump_frames, self.jump_frames_left]:
-                    self.current_frames = self.idle_frames if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) else (self.running_frames_left if keys[pygame.K_LEFT] else self.running_frames)
+                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) else (self.running_frames_left if keys[pygame.K_LEFT] else self.running_frames)
 
             # Update animation
             now = pygame.time.get_ticks()
@@ -205,6 +221,19 @@ def main():
             pygame.display.flip()
             clock.tick(15)  # Limit the loop to 15 frames per second
 
+    def draw_health_bar(surface, x, y, percentage):
+        BAR_WIDTH = 200
+        BAR_HEIGHT = 25
+        fill = percentage * BAR_WIDTH / 100
+        border_color = (255, 255, 255)
+        fill_color = (0, 255, 0)
+
+        border_rect = pygame.Rect(x, y, BAR_WIDTH, BAR_HEIGHT)
+        fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
+
+        pygame.draw.rect(surface, fill_color, fill_rect)
+        pygame.draw.rect(surface, border_color, border_rect, 2)
+
     # Create player
     player = Player()
     
@@ -247,6 +276,9 @@ def main():
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
         for sprite in all_sprites:
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
+
+        # Draw the health bar
+        draw_health_bar(screen, 10, 10, player.health)
 
         pygame.display.flip()
         clock.tick(FRAME_RATE)  # Limit the frame rate
