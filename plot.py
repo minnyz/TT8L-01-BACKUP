@@ -45,7 +45,7 @@ def detail_text(text, font, text_col, x, y, max_width, chars_to_display):
             break
 
 full_text = ('You are Detective Riley Crane, a top detective in the city of metropolis. You'
-            ' are are required to take down all of the criminals that are roaming the streets. These'
+            ' are required to take down all of the criminals that are roaming the streets. These'
             ' criminals are armed, so you better be careful. You are free to use excessive force AKA fist/gun. It is'
             ' time to show your skills and save the city.')
 
