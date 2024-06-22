@@ -12,7 +12,7 @@ def main():
     click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
     explosion_sound = pygame.mixer.Sound("assets/explosion.mp3")
     jump_sound = pygame.mixer.Sound("assets/jump.wav")
-    running_sound = pygame.mixer.Sound("assets/running.mp3")
+    #running_sound = pygame.mixer.Sound("assets/running.mp3")
     punch_sound = pygame.mixer.Sound("assets/punch.wav")
     
     # Constants
@@ -106,8 +106,8 @@ def main():
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.topleft = (x, y)
-            self.shooting_distance = 300  # Distance at which the mob starts shooting
-            self.shoot_delay = 1500  # Delay between shots in milliseconds
+            self.shooting_distance = 200  # Distance at which the mob starts shooting
+            self.shoot_delay = 2000  # Delay between shots in milliseconds
             self.last_shot = pygame.time.get_ticks()
             self.last_update = pygame.time.get_ticks()  # Initialize last_update here
             self.velocity = pygame.math.Vector2(0, 0)  # Add velocity if needed for movement
@@ -233,8 +233,7 @@ def main():
                     self.rect.x -= PLAYER_SPEED
                     self.facing_left = True
                     if self.on_ground:
-                        self.current_frames = self.running_frames_left
-                        running_sound.play() 
+                        self.current_frames = self.running_frames_left 
                     else:
                         self.current_frames = self.jump_frames_left
                 elif keys[pygame.K_RIGHT]:
@@ -242,7 +241,6 @@ def main():
                     self.facing_left = False
                     if self.on_ground:
                         self.current_frames = self.running_frames
-                        running_sound.play()
                     else:
                         self.current_frames = self.jump_frames
                 else:
@@ -363,7 +361,49 @@ def main():
 
         pygame.draw.rect(surface, fill_color, fill_rect)
         pygame.draw.rect(surface, border_color, border_rect, 2)
+    
+    
+    # Function to show death popup and handle restart/main menu options
+    def show_death_popup():
+        popup_font = pygame.font.Font("assets/cyb3.ttf", 40)
+        popup_rect = pygame.Rect(SCREEN_WIDTH // 4, SCREEN_HEIGHT // 4, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+        popup_color = (0, 0, 0)
+        option_color = (255, 255, 255)
+        options = ["Restart", "Main Menu"]
+        selected_option = 0
 
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        selected_option = (selected_option - 1) % len(options)
+                    elif event.key == pygame.K_DOWN:
+                        selected_option = (selected_option + 1) % len(options)
+                    elif event.key == pygame.K_RETURN:
+                        click_sound.play()
+                        if selected_option == 0:  # Restart
+                            main()  # Restart the game
+                        elif selected_option == 1:  # Main Menu
+                            import menu
+                            menu.main_menu()  # Go back to main menu
+
+            # Draw popup background
+            pygame.draw.rect(screen, popup_color, popup_rect)
+
+            # Draw popup text
+            popup_text = popup_font.render("You Died!", True, option_color)
+            screen.blit(popup_text, (popup_rect.centerx - popup_text.get_width() // 2, popup_rect.top + 20))
+
+            # Draw options
+            for i, option in enumerate(options):
+                text = popup_font.render(option, True, option_color if i == selected_option else (150, 150, 150))
+                screen.blit(text, (popup_rect.centerx - text.get_width() // 2, popup_rect.top + 100 + i * 50))
+
+            pygame.display.flip()
+    
     # Sprite groups
     mobs = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
@@ -415,7 +455,7 @@ def main():
             player.health -= 10  # Reduce player health by 10 on hit
             explosion_sound.play()  # Play explosion sound
             if player.health <= 0:
-                running = False  # End the game if health reachaes zero
+                show_death_popup() # End the game if health reachaes zero
         
         # Allow mobs to shoot
         for mob in mobs:
