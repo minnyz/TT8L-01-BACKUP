@@ -93,40 +93,52 @@ def main():
             self.current_frames = self.idle_frames
             self.facing_left = False
             self.health = PLAYER_MAX_HEALTH
+            self.is_punching = False  # Add a flag to track punching state
+            self.punch_duration = 500  # Duration of the punch animation in milliseconds
+            self.punch_start_time = 0  # Time when the punch animation started
 
         def update(self):
-            # Apply gravity
+        # Apply gravity
             self.velocity_y += GRAVITY
 
-            # Check for player input
+        # Check for player input
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                self.rect.x -= PLAYER_SPEED
-                self.facing_left = True
-                if self.on_ground:
-                    self.current_frames = self.running_frames_left
-                else:
-                    self.current_frames = self.jump_frames_left
-            elif keys[pygame.K_RIGHT]:
-                self.rect.x += PLAYER_SPEED
-                self.facing_left = False
-                if self.on_ground:
-                    self.current_frames = self.running_frames
-                else:
-                    self.current_frames = self.jump_frames
-            else:
-                if self.on_ground:
-                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
-                else:
-                    self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
-
-            if keys[pygame.K_SPACE] and self.on_ground:
-                self.velocity_y = JUMP_VELOCITY
-                self.on_ground = False
-                self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
 
             if keys[pygame.K_z] and self.on_ground:
+                self.is_punching = True
+                self.punch_start_time = pygame.time.get_ticks()
                 self.current_frames = self.punch_frames if not self.facing_left else self.punch_frames_left
+
+            if self.is_punching:
+                if pygame.time.get_ticks() - self.punch_start_time > self.punch_duration:
+                    self.is_punching = False
+                    self.frame_index = 0  # Reset the frame index after punching
+
+            if not self.is_punching:
+                if keys[pygame.K_LEFT]:
+                    self.rect.x -= PLAYER_SPEED
+                    self.facing_left = True
+                    if self.on_ground:
+                        self.current_frames = self.running_frames_left
+                    else:
+                        self.current_frames = self.jump_frames_left
+                elif keys[pygame.K_RIGHT]:
+                    self.rect.x += PLAYER_SPEED
+                    self.facing_left = False
+                    if self.on_ground:
+                        self.current_frames = self.running_frames
+                    else:
+                        self.current_frames = self.jump_frames
+                else:
+                    if self.on_ground:
+                        self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
+                    else:
+                        self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
+
+                if keys[pygame.K_SPACE] and self.on_ground:
+                    self.velocity_y = JUMP_VELOCITY
+                    self.on_ground = False
+                    self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
 
             # Update vertical position
             self.rect.y += self.velocity_y
