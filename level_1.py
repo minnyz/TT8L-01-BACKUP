@@ -44,7 +44,6 @@ def main():
             frames.append(frame)
         return frames
 
-
     # Load sprite sheets 
     try:
         idle_sprite_sheet = pygame.image.load("assets/Mc/mc_idle.png").convert_alpha()
@@ -407,6 +406,7 @@ def main():
         hits = pygame.sprite.spritecollide(player, bullets, True)
         for hit in hits:
             player.health -= 10  # Reduce player health by 10 on hit
+            explosion_sound.play()  # Play explosion sound
             if player.health <= 0:
                 running = False  # End the game if health reachaes zero
         
