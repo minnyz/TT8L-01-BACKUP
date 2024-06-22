@@ -16,6 +16,7 @@ def main():
     punch_sound = pygame.mixer.Sound("assets/punch.wav")
     die_sound = pygame.mixer.Sound("assets/die.wav")
     
+    
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
     POPUP_WIDTH, POPUP_HEIGHT = 1280, 720
@@ -63,6 +64,7 @@ def main():
         death_sprite_sheet = pygame.image.load("assets/Mc/mc_death.png").convert_alpha()
         mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Scan.png").convert_alpha()
         bullet_image = pygame.image.load('assets/mobsLow/1/c4.png').convert_alpha()
+        mob_death_sprite_sheet = pygame.image.load("assets/mobsLow/1/Death.png").convert_alpha()
     except pygame.error as e:
         print(f"Error loading sprite sheets: {e}")
         pygame.quit()
@@ -78,8 +80,9 @@ def main():
     punch_frames = extract_frames(punch_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     punch_frames_left = extract_frames(punch_left_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     death_frames = extract_frames(death_sprite_sheet, 48, 48, 6, 10, 10)
-    mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 8, 120, 120)  
-    
+    mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 8, 120, 120) 
+    mob_death_frames = extract_frames(mob_death_sprite_sheet, 48, 48, 8, 120, 120)  
+ 
     # Bullet class
     class Bullet(pygame.sprite.Sprite):
         def __init__(self, x, y, target_x, target_y):
@@ -101,11 +104,11 @@ def main():
             if self.rect.right < 0 or self.rect.left > WORLD_WIDTH or self.rect.bottom < 0 or self.rect.top > SCREEN_HEIGHT:
                 self.kill()
 
-    # Mobs Class
     class Mob(pygame.sprite.Sprite):
         def __init__(self, x, y):
             super().__init__()
             self.idle_frames = mob_frames  # Use the frames loaded from mob sprite sheet
+            self.death_frames = mob_death_frames  # Add death frames
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.topleft = (x, y)
@@ -117,8 +120,23 @@ def main():
             self.frame_index = 0  # Initialize frame index for animation
             self.animation_speed = 0.1  # Animation speed
             self.health = 100
-        
+            self.is_dead = False  # Flag to check if the mob is dead
+            self.death_time = 0  # Time when the mob died
+            self.mobs_died_sound = pygame.mixer.Sound("assets/mob_die.wav")
+            
         def update(self, *args):
+            if self.is_dead:
+                # Handle death animation
+                now = pygame.time.get_ticks()
+                if now - self.last_update > 1000 * self.animation_speed:
+                    self.last_update = now
+                    self.frame_index += 1
+                    if self.frame_index < len(self.death_frames):
+                        self.image = self.death_frames[self.frame_index]
+                    else:
+                        self.kill()  # Remove the mob after the death animation finishes
+                return
+
             if args and isinstance(args[0], pygame.sprite.Sprite):
                 player = args[0]
                 # Check distance to player
@@ -149,30 +167,38 @@ def main():
                 bullet.velocity = direction * bullet.speed  # Update bullet's velocity towards the player
                 all_sprites.add(bullet)
                 bullets.add(bullet)
-    
+
         def take_damage(self, damage):
             self.health -= damage
             if self.health <= 0:
-                self.kill()  # Remove the mob if health drops to zero
-        
+                self.die()  # Switch to die method when health drops to zero
+
+        def die(self):
+            self.is_dead = True  # Flag to indicate the mob is dead
+            self.death_time = pygame.time.get_ticks()  # Record the time of death
+            self.frame_index = 0  # Reset frame index for death animation
+            self.last_update = pygame.time.get_ticks()  # Reset the last update time for death animation
+            self.image = self.death_frames[self.frame_index]  # Start with the first death frame
+            self.mobs_died_sound.play() 
+            
         def draw_health_bar(self, surface):
-            BAR_WIDTH = 40
-            BAR_HEIGHT = 6
-            fill = BAR_WIDTH * (self.health / 100)
-            border_color = (255, 255, 255)
-            fill_color = (0, 255, 0)
+            if not self.is_dead:  # Only draw health bar if the mob is not dead
+                BAR_WIDTH = 40
+                BAR_HEIGHT = 6
+                fill = BAR_WIDTH * (self.health / 100)
+                border_color = (255, 255, 255)
+                fill_color = (0, 255, 0)
 
-            # Fixed position on the screen
-            health_bar_x = self.rect.centerx - BAR_WIDTH // 2
-            health_bar_y = self.rect.top - 10
+                # Fixed position on the screen
+                health_bar_x = self.rect.centerx - BAR_WIDTH // 2
+                health_bar_y = self.rect.top - 10
 
-            # Draw the border of the health bar
-            border_rect = pygame.Rect(health_bar_x - camera_x, health_bar_y, BAR_WIDTH, BAR_HEIGHT)
-            fill_rect = pygame.Rect(health_bar_x - camera_x, health_bar_y, fill, BAR_HEIGHT)
+                # Draw the border of the health bar
+                border_rect = pygame.Rect(health_bar_x - camera_x, health_bar_y, BAR_WIDTH, BAR_HEIGHT)
+                fill_rect = pygame.Rect(health_bar_x - camera_x, health_bar_y, fill, BAR_HEIGHT)
 
-            pygame.draw.rect(surface, fill_color, fill_rect)
-            pygame.draw.rect(surface, border_color, border_rect, 1)
-
+                pygame.draw.rect(surface, fill_color, fill_rect)
+                pygame.draw.rect(surface, border_color, border_rect, 1)
 
     # Player class
     class Player(pygame.sprite.Sprite):
@@ -494,7 +520,7 @@ def main():
         # Check for bullet collisions with the player
         hits = pygame.sprite.spritecollide(player, bullets, True)
         for hit in hits:
-            player.health -= 100  # Reduce player health by 10 on hit
+            player.health -= 10  # Reduce player health by 10 on hit
             explosion_sound.play()  # Play explosion sound
             if player.health <= 0:
                 show_death_popup() # End the game if health reachaes zero
