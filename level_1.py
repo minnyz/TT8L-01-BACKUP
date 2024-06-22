@@ -110,7 +110,8 @@ def main():
             self.velocity = pygame.math.Vector2(0, 0)  # Add velocity if needed for movement
             self.frame_index = 0  # Initialize frame index for animation
             self.animation_speed = 0.1  # Animation speed
-
+            self.health = 100
+        
         def update(self, *args):
             if args and isinstance(args[0], pygame.sprite.Sprite):
                 player = args[0]
@@ -142,7 +143,12 @@ def main():
                 bullet.velocity = direction * bullet.speed  # Update bullet's velocity towards the player
                 all_sprites.add(bullet)
                 bullets.add(bullet)
-
+    
+        def take_damage(self, damage):
+            self.health -= damage
+            if self.health <= 0:
+                self.kill()  # Remove the mob if health drops to zero
+    
     # Player class
     class Player(pygame.sprite.Sprite):
         def __init__(self):
@@ -154,7 +160,7 @@ def main():
             self.jump_frames = jump_frames
             self.jump_frames_left = jump_frames_left
             self.punch_frames = punch_frames
-            self.punch_frames_left = punch_frames_left
+            self.punch_frames_left = punch_frames_left 
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
@@ -165,42 +171,66 @@ def main():
             self.animation_speed = 0.1  # Control the speed of the animation
             self.last_update = pygame.time.get_ticks()
             self.current_frames = self.idle_frames
+            self.is_punching = False  # Add a flag to track punching state
+            self.punch_duration = 500  # Duration of the punch animation in milliseconds
+            self.punch_start_time = 0  # Time when the punch animation started
             self.facing_left = False
             self.health = PLAYER_MAX_HEALTH
+        
+        def attack(self, mobs):
+            attack_hitbox = pygame.sprite.Sprite()  # Create a sprite for attack hitbox
+            attack_hitbox.rect = pygame.Rect(self.rect.x, self.rect.y, self.rect.width + 50, self.rect.height + 20)
+            
+            # Check for collisions with mobs
+            hits = pygame.sprite.spritecollide(attack_hitbox, mobs, False)
+            
+            # Deal damage to each mob hit
+            for mob in hits:
+                mob.take_damage(10)  # Adjust damage as needed
+  
 
         def update(self):
             # Apply gravity
             self.velocity_y += GRAVITY
-
-            # Check for player input
+            
+        # Check for player input
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                self.rect.x -= PLAYER_SPEED
-                self.facing_left = True
-                if self.on_ground:
-                    self.current_frames = self.running_frames_left
-                else:
-                    self.current_frames = self.jump_frames_left
-            elif keys[pygame.K_RIGHT]:
-                self.rect.x += PLAYER_SPEED
-                self.facing_left = False
-                if self.on_ground:
-                    self.current_frames = self.running_frames
-                else:
-                    self.current_frames = self.jump_frames
-            else:
-                if self.on_ground:
-                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
-                else:
-                    self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
-
-            if keys[pygame.K_SPACE] and self.on_ground:
-                self.velocity_y = JUMP_VELOCITY
-                self.on_ground = False
-                self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
 
             if keys[pygame.K_z] and self.on_ground:
+                self.is_punching = True
+                self.punch_start_time = pygame.time.get_ticks()
                 self.current_frames = self.punch_frames if not self.facing_left else self.punch_frames_left
+
+            if self.is_punching:
+                if pygame.time.get_ticks() - self.punch_start_time > self.punch_duration:
+                    self.is_punching = False
+                    self.frame_index = 0  # Reset the frame index after punching
+
+            if not self.is_punching:
+                if keys[pygame.K_LEFT]:
+                    self.rect.x -= PLAYER_SPEED
+                    self.facing_left = True
+                    if self.on_ground:
+                        self.current_frames = self.running_frames_left
+                    else:
+                        self.current_frames = self.jump_frames_left
+                elif keys[pygame.K_RIGHT]:
+                    self.rect.x += PLAYER_SPEED
+                    self.facing_left = False
+                    if self.on_ground:
+                        self.current_frames = self.running_frames
+                    else:
+                        self.current_frames = self.jump_frames
+                else:
+                    if self.on_ground:
+                        self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
+                    else:
+                        self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
+
+                if keys[pygame.K_SPACE] and self.on_ground:
+                    self.velocity_y = JUMP_VELOCITY
+                    self.on_ground = False
+                    self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
 
             # Update vertical position
             self.rect.y += self.velocity_y
@@ -219,13 +249,7 @@ def main():
 
                 # Reset to idle or running animation after landing
                 if self.current_frames in [self.jump_frames, self.jump_frames_left]:
-                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
-                elif not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
-                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
-                elif keys[pygame.K_LEFT]:
-                    self.current_frames = self.running_frames_left
-                elif keys[pygame.K_RIGHT]:
-                    self.current_frames = self.running_frames
+                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames if not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]) else (self.running_frames_left if keys[pygame.K_LEFT] else self.running_frames)
 
             # Update animation
             now = pygame.time.get_ticks()
@@ -301,6 +325,7 @@ def main():
             pygame.display.flip()
             clock.tick(15)  # Limit the loop to 15 frames per second
 
+    
     def draw_health_bar(surface, x, y, percentage):
         BAR_WIDTH = 200
         BAR_HEIGHT = 25
@@ -353,21 +378,26 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pause_menu()
-
+                elif event.key == pygame.K_z:
+                    player.attack(mobs)
         # Update all sprites
-        all_sprites.update()  # Pass player object to update mobs
-
+        all_sprites.update()  # Pass player object to update mobsa
+        
         # Check for bullet collisions with the player
         hits = pygame.sprite.spritecollide(player, bullets, True)
         for hit in hits:
             player.health -= 10  # Reduce player health by 10 on hit
             if player.health <= 0:
-                running = False  # End the game if health reaches zero
+                running = False  # End the game if health reachaes zero
         
         # Allow mobs to shoot
         for mob in mobs:
             mob.update(player)
         
+        # Check mob health and remove dead mobs
+        for mob in mobs.copy():  # Use copy() to iterate over a copy since we modify the original set
+            if mob.health <= 0:
+                mob.kill()
         # Scroll the camera with the player
         camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
 
