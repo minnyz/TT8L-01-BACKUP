@@ -17,6 +17,7 @@ def main():
     
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+    POPUP_WIDTH, POPUP_HEIGHT = 1280, 720
     PLAYER_WIDTH, PLAYER_HEIGHT = 200, 200
     PLAYER_SPEED = 5
     JUMP_VELOCITY = -15
@@ -24,6 +25,7 @@ def main():
     FRAME_RATE = 60
     WORLD_WIDTH = 1600
     PLAYER_MAX_HEALTH = 100
+    
 
     # Set up the display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -198,6 +200,8 @@ def main():
             self.punch_start_time = 0  # Time when the punch animation started
             self.facing_left = False
             self.health = PLAYER_MAX_HEALTH
+            self.is_dead = False 
+            self.death_time = 0 
         
         def attack(self, mobs):
             attack_hitbox = pygame.sprite.Sprite()  # Create a sprite for attack hitbox
@@ -282,7 +286,28 @@ def main():
                 if self.frame_index >= len(self.current_frames):
                     self.frame_index = 0
                 self.image = self.current_frames[self.frame_index]
+           
+            # Check if player health drops to zero
+            if self.is_dead:
+                return  # If dead, do not update further
 
+            # Check conditions for dying
+            if self.health <= 0:
+                self.die()
+        
+        def die(self):
+            self.current_frames = death_frames  # Switch to death frames
+            self.frame_index = 0  # Reset frame index for death animation
+            self.is_dead = True  # Flag to track if player is dead
+            self.death_time = pygame.time.get_ticks()  # Record time of death
+
+        # Wait for 2 seconds before showing game over popup
+        pygame.time.set_timer(pygame.USEREVENT, 3000)  # 3000 milliseconds (3 seconds)
+        
+        def handle_event(self, event):
+            if event.type == pygame.USEREVENT and self.is_dead:
+                show_death_popup()  # Show game over popup after delay
+    
     def draw_text(surface, text, size, color, x, y):
         font = pygame.font.Font("assets/cyb3.ttf", size)
         text_surface = font.render(text, True, color)
@@ -365,10 +390,17 @@ def main():
     
     # Function to show death popup and handle restart/main menu options
     def show_death_popup():
-        popup_font = pygame.font.Font("assets/cyb3.ttf", 40)
-        popup_rect = pygame.Rect(SCREEN_WIDTH // 4, SCREEN_HEIGHT // 4, SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
-        popup_color = (0, 0, 0)
-        option_color = (255, 255, 255)
+        pygame.init()
+        screen = pygame.display.set_mode((POPUP_WIDTH, POPUP_HEIGHT),pygame.FULLSCREEN)
+        popup_rect = screen.get_rect()
+        
+        # Larger font size for the "You Died!" text
+        popup_font_large = pygame.font.Font("assets/cyb3.ttf", 60) 
+        # Regular font size for the options
+        popup_font = pygame.font.Font("assets/cyb3.ttf", 40)  
+        
+        popup_color = pygame.Color(50, 50, 50, 150)
+        option_color = (255, 0, 0)
         options = ["Restart", "Main Menu"]
         selected_option = 0
 
@@ -391,11 +423,13 @@ def main():
                             menu.main_menu()  # Go back to main menu
 
             # Draw popup background
-            pygame.draw.rect(screen, popup_color, popup_rect)
+            popup_surface = pygame.Surface((popup_rect.width, popup_rect.height), pygame.SRCALPHA)  # Create a surface with alpha channel
+            popup_surface.fill(popup_color)  # Fill the surface with the transparent gray color
+            screen.blit(popup_surface, (0,0))  # Blit the popup surface onto the screen
 
             # Draw popup text
-            popup_text = popup_font.render("You Died!", True, option_color)
-            screen.blit(popup_text, (popup_rect.centerx - popup_text.get_width() // 2, popup_rect.top + 20))
+            popup_text_large = popup_font_large.render("You Died!", True, option_color)
+            screen.blit(popup_text_large, (popup_rect.centerx - popup_text_large.get_width() // 2, popup_rect.top + 20))
 
             # Draw options
             for i, option in enumerate(options):
@@ -445,6 +479,8 @@ def main():
                     pause_menu()
                 elif event.key == pygame.K_z:
                     player.attack(mobs)
+            # Handle player event to check for delayed game over popup
+            player.handle_event(event)
         
         # Update all sprites
         all_sprites.update()  # Pass player object to update mobsa
@@ -452,7 +488,7 @@ def main():
         # Check for bullet collisions with the player
         hits = pygame.sprite.spritecollide(player, bullets, True)
         for hit in hits:
-            player.health -= 10  # Reduce player health by 10 on hit
+            player.health -= 100  # Reduce player health by 10 on hit
             explosion_sound.play()  # Play explosion sound
             if player.health <= 0:
                 show_death_popup() # End the game if health reachaes zero
@@ -493,5 +529,10 @@ def main():
 
     pygame.quit()
 
+def show_death_popup():
+    # Existing code for game over popup
+    pass
+
 if __name__ == "__main__":
     main()
+show_death_popup()
