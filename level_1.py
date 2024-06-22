@@ -11,6 +11,7 @@ def main():
     pygame.mixer.init()
     click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
     explosion_sound = pygame.mixer.Sound("assets/explosion.mp3")
+    jump_sound = pygame.mixer.Sound("assets/jump.mp3")
     
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
@@ -246,6 +247,7 @@ def main():
                         self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
 
                 if keys[pygame.K_SPACE] and self.on_ground:
+                    jump_sound.play() # jump sound 
                     self.velocity_y = JUMP_VELOCITY
                     self.on_ground = False
                     self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
