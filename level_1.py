@@ -148,7 +148,26 @@ def main():
             self.health -= damage
             if self.health <= 0:
                 self.kill()  # Remove the mob if health drops to zero
-    
+        
+        def draw_health_bar(self, surface):
+            BAR_WIDTH = 40
+            BAR_HEIGHT = 6
+            fill = BAR_WIDTH * (self.health / 100)
+            border_color = (255, 255, 255)
+            fill_color = (0, 255, 0)
+
+            # Fixed position on the screen
+            health_bar_x = self.rect.centerx - BAR_WIDTH // 2
+            health_bar_y = self.rect.top - 10
+
+            # Draw the border of the health bar
+            border_rect = pygame.Rect(health_bar_x - camera_x, health_bar_y, BAR_WIDTH, BAR_HEIGHT)
+            fill_rect = pygame.Rect(health_bar_x - camera_x, health_bar_y, fill, BAR_HEIGHT)
+
+            pygame.draw.rect(surface, fill_color, fill_rect)
+            pygame.draw.rect(surface, border_color, border_rect, 1)
+
+
     # Player class
     class Player(pygame.sprite.Sprite):
         def __init__(self):
@@ -188,7 +207,6 @@ def main():
             for mob in hits:
                 mob.take_damage(10)  # Adjust damage as needed
   
-
         def update(self):
             # Apply gravity
             self.velocity_y += GRAVITY
@@ -380,6 +398,7 @@ def main():
                     pause_menu()
                 elif event.key == pygame.K_z:
                     player.attack(mobs)
+        
         # Update all sprites
         all_sprites.update()  # Pass player object to update mobsa
         
@@ -393,21 +412,32 @@ def main():
         # Allow mobs to shoot
         for mob in mobs:
             mob.update(player)
-        
+            
+        # Draw health bars for mobs
+        for mob in mobs:
+            mob.draw_health_bar(screen)
+
         # Check mob health and remove dead mobs
-        for mob in mobs.copy():  # Use copy() to iterate over a copy since we modify the original set
+        for mob in mobs.copy():  
             if mob.health <= 0:
                 mob.kill()
+        
         # Scroll the camera with the player
         camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
 
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
+        
+        # Draw all spzrites
         for sprite in all_sprites:
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
-
-        # Draw the health bar
+        
+        # Draw health bars for mobs
+        for mob in mobs:
+            mob.draw_health_bar(screen)
+        
+        # Draw the health bar for players
         draw_health_bar(screen, 10, 10, player.health)
 
         pygame.display.flip()
