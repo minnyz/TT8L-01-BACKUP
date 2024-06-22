@@ -11,7 +11,9 @@ def main():
     pygame.mixer.init()
     click_sound = pygame.mixer.Sound("assets/enterface_click_2.mp3")
     explosion_sound = pygame.mixer.Sound("assets/explosion.mp3")
-    jump_sound = pygame.mixer.Sound("assets/jump.mp3")
+    jump_sound = pygame.mixer.Sound("assets/jump.wav")
+    running_sound = pygame.mixer.Sound("assets/running.mp3")
+    punch_sound = pygame.mixer.Sound("assets/punch.wav")
     
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
@@ -216,6 +218,7 @@ def main():
             keys = pygame.key.get_pressed()
 
             if keys[pygame.K_z] and self.on_ground:
+                punch_sound.play()
                 self.is_punching = True
                 self.punch_start_time = pygame.time.get_ticks()
                 self.current_frames = self.punch_frames if not self.facing_left else self.punch_frames_left
@@ -231,6 +234,7 @@ def main():
                     self.facing_left = True
                     if self.on_ground:
                         self.current_frames = self.running_frames_left
+                        running_sound.play() 
                     else:
                         self.current_frames = self.jump_frames_left
                 elif keys[pygame.K_RIGHT]:
@@ -238,6 +242,7 @@ def main():
                     self.facing_left = False
                     if self.on_ground:
                         self.current_frames = self.running_frames
+                        running_sound.play()
                     else:
                         self.current_frames = self.jump_frames
                 else:
