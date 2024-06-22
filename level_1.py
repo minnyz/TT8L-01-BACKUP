@@ -13,15 +13,13 @@ def main():
 
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
-    PLAYER_WIDTH, PLAYER_HEIGHT = 70, 70  # Increased size to make the player larger
-    PLAYER_SPEED = 3
-    JUMP_VELOCITY = -6.5
-    GRAVITY = 0.1
+    PLAYER_WIDTH, PLAYER_HEIGHT = 200, 200
+    PLAYER_SPEED = 5
+    JUMP_VELOCITY = -15
+    GRAVITY = 0.5
     FRAME_RATE = 60
     WORLD_WIDTH = 1600
-    PLAYER_HEALTH = 100  # Initial health value
-    HEALTH_BAR_DISPLAY_TIME = 2000  # Time in milliseconds to show the health bar after being attacked
-    MOB_ATTACK_COOLDOWN = 1000  # Cooldown time in milliseconds for mob attacks
+    PLAYER_MAX_HEALTH = 100
 
     # Set up the display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -45,167 +43,118 @@ def main():
             frames.append(frame)
         return frames
 
-    # Load sprite sheets for idle and running animations
+
+    # Load sprite sheets 
     try:
         idle_sprite_sheet = pygame.image.load("assets/Mc/mc_idle.png").convert_alpha()
+        idle_left_sprite_sheet = pygame.transform.flip(idle_sprite_sheet, True, False)  # Flipped version for idle left
         running_sprite_sheet = pygame.image.load("assets/Mc/mc_run.png").convert_alpha()
-    except pygame.error:
-        print("Error loading sprite sheets. Please check the path.")
+        running_left_sprite_sheet = pygame.transform.flip(running_sprite_sheet, True, False)  # Flipped version for running left
+        jump_sprite_sheet = pygame.image.load("assets/Mc/mc_jump.png").convert_alpha()
+        jump_left_sprite_sheet = pygame.transform.flip(jump_sprite_sheet, True, False)  # Flipped version for jumping left
+        punch_sprite_sheet = pygame.image.load("assets/Mc/mc_punch.png").convert_alpha()
+        punch_left_sprite_sheet = pygame.transform.flip(punch_sprite_sheet, True, False)  # Flipped version for punching left
+        death_sprite_sheet = pygame.image.load("assets/Mc/mc_death.png").convert_alpha()
+        mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Scan.png").convert_alpha()
+    except pygame.error as e:
+        print(f"Error loading sprite sheets: {e}")
         pygame.quit()
         sys.exit()
-
+    
     # Extract and scale frames from the sprite sheets
     idle_frames = extract_frames(idle_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    idle_frames_left = extract_frames(idle_left_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     running_frames = extract_frames(running_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
-
-    # Define Platform class
-    class Platform(pygame.sprite.Sprite):
-        def __init__(self, x, y, width, height):
-            super().__init__()
-            self.image = pygame.Surface((width, height))
-            self.image.fill((139, 69, 19))  # Brown color for the platform
-            self.rect = self.image.get_rect()
-            self.rect.x = x
-            self.rect.y = y
-
-        def update(self):
-            pass  # Platform does not need to update itself
+    running_frames_left = extract_frames(running_left_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    jump_frames = extract_frames(jump_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    jump_frames_left = extract_frames(jump_left_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
+    punch_frames = extract_frames(punch_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    punch_frames_left = extract_frames(punch_left_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    death_frames = extract_frames(death_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 8, 120, 120)  
     
+    # Bullet class
     class Bullet(pygame.sprite.Sprite):
-        def __init__(self, x, y, target_x, target_y, speed, image):
+        def __init__(self, x, y, target_x, target_y):
             super().__init__()
-            self.image = image
+            self.image = pygame.Surface((10, 10))
+            self.image.fill((0, 255, 0))  # Temporary green color for visibility
             self.rect = self.image.get_rect()
             self.rect.center = (x, y)
-            self.speed = speed
-            
-            # Calculate direction towards target
-            dx = target_x - x
-            dy = target_y - y
-            dist = math.hypot(dx, dy)
-            if dist != 0:
-                self.dx = dx / dist * speed
-                self.dy = dy / dist * speed
-            else:
-                self.dx, self.dy = 0, 0
+            self.speed = 10
+
+            # Calculate direction towards the player
+            direction = pygame.math.Vector2(target_x - x, target_y - y).normalize()
+            self.velocity = direction * self.speed
 
         def update(self):
-            self.rect.x += self.dx
-            self.rect.y += self.dy
-            
-            # Remove the bullet if it goes out of the screen
-            if self.rect.x < 0 or self.rect.x > WORLD_WIDTH or self.rect.y < 0 or self.rect.y > SCREEN_HEIGHT:
+            self.rect.x += self.velocity.x
+            self.rect.y += self.velocity.y
+
+            # Remove the bullet if it moves off the screen
+            if self.rect.right < 0 or self.rect.left > WORLD_WIDTH or self.rect.bottom < 0 or self.rect.top > SCREEN_HEIGHT:
                 self.kill()
 
-
-
-    # Load bullet image
-    try:
-        bullet_image = pygame.image.load("assets/mobsLow/1/Drop.png").convert_alpha()
-        bullet_image = pygame.transform.scale(bullet_image, (60, 40))  # Scale as needed
-    except pygame.error:
-        print("Error loading bullet image. Please check the path.")
-        pygame.quit()
-        sys.exit()
-    
-    # Define Mob class
+    # Mobs Class
     class Mob(pygame.sprite.Sprite):
-        def __init__(self, x, y, frames, bullet_image):
+        def __init__(self, x, y):
             super().__init__()
-            self.frames = frames
-            self.image = self.frames[0]
+            self.idle_frames = mob_frames  # Use the frames loaded from mob sprite sheet
+            self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
-            self.rect.x = x
-            self.rect.y = y
-            self.speed = 0.5  # Adjust speed as needed
-            self.attack_damage = 10  # Damage inflicted on the player per attack
-            self.frame_index = 0
-            self.animation_speed = 0.1
-            self.last_update = pygame.time.get_ticks()
-            self.health = 50  # Initial health value
-            self.max_health = 50  # Maximum health value
-            self.last_attacked_time = 0  # Time when the mob was last attacked
-            self.last_attack_time = 0  # Time when the mob last attacked
-            self.bullet_image = bullet_image # Bullet image
+            self.rect.topleft = (x, y)
+            self.shooting_distance = 300  # Distance at which the mob starts shooting
+            self.shoot_delay = 1500  # Delay between shots in milliseconds
+            self.last_shot = pygame.time.get_ticks()
+            self.last_update = pygame.time.get_ticks()  # Initialize last_update here
+            self.velocity = pygame.math.Vector2(0, 0)  # Add velocity if needed for movement
+            self.frame_index = 0  # Initialize frame index for animation
+            self.animation_speed = 0.1  # Animation speed
 
-        def update(self, player, bullet_group):
-            # Check if player is nearby
-            if self.is_player_nearby(player):
-                # Move towards the player
-                if self.rect.x < player.rect.x:
-                    self.rect.x += self.speed
-                elif self.rect.x > player.rect.x:
-                    self.rect.x -= self.speed
+        def update(self, *args):
+            if args and isinstance(args[0], pygame.sprite.Sprite):
+                player = args[0]
+                # Check distance to player
+                if abs(self.rect.centerx - player.rect.centerx) < self.shooting_distance:
+                    self.shoot(player)
 
-                # Shoot bullets if within range and cooldown period has passed
-                now = pygame.time.get_ticks()
-                if now - self.last_attack_time > MOB_ATTACK_COOLDOWN:
-                    self.shoot(player, bullet_group)
-                    self.last_attack_time = now
-            pass 
             # Update animation
             now = pygame.time.get_ticks()
-            if now - self.last_update > 1000 / (FRAME_RATE * self.animation_speed):
+            if now - self.last_update > 1000 * self.animation_speed:
                 self.last_update = now
                 self.frame_index += 1
-                if self.frame_index >= len(self.frames):
+                if self.frame_index >= len(self.idle_frames):
                     self.frame_index = 0
-                self.image = self.frames[self.frame_index]
-        
-        def shoot(self, player, bullet_group):
-                    target_x, target_y = player.rect.centerx, player.rect.centery
-                    bullet = Bullet(self.rect.centerx, self.rect.centery, target_x, target_y, 5, self.bullet_image)
-                    bullet_group.add(bullet)
-        
-        def is_player_nearby(self, player):
-            # Define a distance threshold for "nearby"
-            distance_threshold = 400  # Adjust as needed
-            return abs(self.rect.centerx - player.rect.centerx) < distance_threshold
+                self.image = self.idle_frames[self.frame_index]
 
-        def decrease_health(self, amount):
-            self.health -= amount
-            self.last_attacked_time = pygame.time.get_ticks()
-            if self.health <= 0:
-                self.kill()  # Remove the mob from all sprite groups
-
-        def draw_health_bar(self, surface, camera_x):
+        def shoot(self, player):
             now = pygame.time.get_ticks()
-            if now - self.last_attacked_time < HEALTH_BAR_DISPLAY_TIME:
-                # Calculate width of health bar
-                bar_length = 50
-                bar_height = 5
-                fill = (self.health / self.max_health) * bar_length
-                outline_rect = pygame.Rect(self.rect.x - camera_x, self.rect.y - 10, bar_length, bar_height)
-                fill_rect = pygame.Rect(self.rect.x - camera_x, self.rect.y - 10, fill, bar_height)
-                pygame.draw.rect(surface, (255, 0, 0), fill_rect)
-                pygame.draw.rect(surface, (255, 255, 255), outline_rect, 1)
+            if now - self.last_shot > self.shoot_delay:
+                self.last_shot = now
+                # Calculate direction towards the player
+                direction = pygame.math.Vector2(player.rect.centerx - self.rect.centerx, player.rect.centery - self.rect.centery).normalize()
 
-        
+                # Adjust the starting point of the bullet's trajectory towards the player's position
+                start_x = self.rect.centerx + direction.x * 10  # Adjust '20' as needed for deeper hits
+                start_y = self.rect.centery + direction.y * 10  # Adjust '20' as needed for deeper hits
 
-    # Load sprite sheet for mobs
-    try:
-        mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Walk.png").convert_alpha()
-    except pygame.error:
-        print("Error loading mobs sprite sheet. Please check the path.")
-        pygame.quit()
-        sys.exit()
+                bullet = Bullet(start_x, start_y, player.rect.centerx, player.rect.centery)
+                bullet.velocity = direction * bullet.speed  # Update bullet's velocity towards the player
+                all_sprites.add(bullet)
+                bullets.add(bullet)
 
-    # Extract and scale frames from the sprite sheet for mobs
-    mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
-
-    # Create mobs
-    mob1 = Mob(500, SCREEN_HEIGHT - PLAYER_HEIGHT - 100, mob_frames, bullet_image)
-
-    # Sprite group for mobs
-    mob_sprites = pygame.sprite.Group()
-    mob_sprites.add(mob1)
-    
     # Player class
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super().__init__()
             self.idle_frames = idle_frames
+            self.idle_frames_left = idle_frames_left
             self.running_frames = running_frames
+            self.running_frames_left = running_frames_left
+            self.jump_frames = jump_frames
+            self.jump_frames_left = jump_frames_left
+            self.punch_frames = punch_frames
+            self.punch_frames_left = punch_frames_left
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
@@ -213,14 +162,11 @@ def main():
             self.velocity_y = 0
             self.on_ground = False
             self.frame_index = 0
-            self.animation_speed = 0.1
+            self.animation_speed = 0.1  # Control the speed of the animation
             self.last_update = pygame.time.get_ticks()
             self.current_frames = self.idle_frames
-            self.direction = "right"
-            self.health = PLAYER_HEALTH  # Initialize health
-            self.max_health = PLAYER_HEALTH  # Maximum health
-            self.attack_cooldown = 500  # Cooldown time in milliseconds
-            self.last_attack_time = 0  # Time when the player last attacked
+            self.facing_left = False
+            self.health = PLAYER_MAX_HEALTH
 
         def update(self):
             # Apply gravity
@@ -230,23 +176,34 @@ def main():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_LEFT]:
                 self.rect.x -= PLAYER_SPEED
-                self.current_frames = self.running_frames
-                self.direction = "left"
+                self.facing_left = True
+                if self.on_ground:
+                    self.current_frames = self.running_frames_left
+                else:
+                    self.current_frames = self.jump_frames_left
             elif keys[pygame.K_RIGHT]:
                 self.rect.x += PLAYER_SPEED
-                self.current_frames = self.running_frames
-                self.direction = "right"
+                self.facing_left = False
+                if self.on_ground:
+                    self.current_frames = self.running_frames
+                else:
+                    self.current_frames = self.jump_frames
             else:
-                self.current_frames = self.idle_frames
+                if self.on_ground:
+                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
+                else:
+                    self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
 
-            if keys[pygame.K_SPACE]:
-                self.jump()
+            if keys[pygame.K_SPACE] and self.on_ground:
+                self.velocity_y = JUMP_VELOCITY
+                self.on_ground = False
+                self.current_frames = self.jump_frames if not self.facing_left else self.jump_frames_left
+
+            if keys[pygame.K_z] and self.on_ground:
+                self.current_frames = self.punch_frames if not self.facing_left else self.punch_frames_left
 
             # Update vertical position
             self.rect.y += self.velocity_y
-            
-            # Check for platform collisions
-            self.check_platform_collisions()
 
             # Boundary checks within the world
             if self.rect.left < 0:
@@ -260,6 +217,16 @@ def main():
                 self.velocity_y = 0
                 self.on_ground = True
 
+                # Reset to idle or running animation after landing
+                if self.current_frames in [self.jump_frames, self.jump_frames_left]:
+                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
+                elif not (keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]):
+                    self.current_frames = self.idle_frames_left if self.facing_left else self.idle_frames
+                elif keys[pygame.K_LEFT]:
+                    self.current_frames = self.running_frames_left
+                elif keys[pygame.K_RIGHT]:
+                    self.current_frames = self.running_frames
+
             # Update animation
             now = pygame.time.get_ticks()
             if now - self.last_update > 1000 / (FRAME_RATE * self.animation_speed):
@@ -267,63 +234,7 @@ def main():
                 self.frame_index += 1
                 if self.frame_index >= len(self.current_frames):
                     self.frame_index = 0
-                if self.direction == "right":
-                    self.image = self.current_frames[self.frame_index]
-                elif self.direction == "left":
-                    self.image = pygame.transform.flip(self.current_frames[self.frame_index], True, False)
-
-        def jump(self):
-            if self.on_ground:
-                self.velocity_y = JUMP_VELOCITY
-                self.on_ground = False
-        
-        def check_platform_collisions(self):
-            collided_platforms = pygame.sprite.spritecollide(self, platform_sprites, False)
-            if collided_platforms:
-                for platform in collided_platforms:
-                    if self.rect.bottom > platform.rect.top and self.rect.bottom < platform.rect.bottom:
-                        self.rect.bottom = platform.rect.top
-                        self.velocity_y = 0
-                        self.on_ground = True
-
-            # Check for collisions with platforms
-            platform_hits = pygame.sprite.spritecollide(self, platform_sprites, False)
-            for platform in platform_hits:
-                if self.velocity_y > 0:  # Falling down
-                    self.rect.bottom = platform.rect.top
-                    self.velocity_y = 0
-                    self.on_ground = True
-                elif self.velocity_y < 0:  # Jumping up
-                    self.rect.top = platform.rect.bottom
-                    self.velocity_y = 0
-        
-        def attack(self):
-            now = pygame.time.get_ticks()
-            if now - self.last_attack_time > self.attack_cooldown:
-                self.last_attack_time = now
-                return True
-            return False
-
-        def decrease_health(self, amount):
-            self.health -= amount
-            if self.health <= 0:
-                self.health = 0
-                self.game_over()
-
-        def game_over(self):
-            global running
-            running = False
-            show_game_over_screen()
-
-        def draw_health_bar(self, surface, x, y):
-            # Calculate width of health bar
-            bar_length = 100
-            bar_height = 10
-            fill = (self.health / self.max_health) * bar_length
-            outline_rect = pygame.Rect(x, y, bar_length, bar_height)
-            fill_rect = pygame.Rect(x, y, fill, bar_height)
-            pygame.draw.rect(surface, (255, 0, 0), fill_rect)
-            pygame.draw.rect(surface, (255, 255, 255), outline_rect, 2)
+                self.image = self.current_frames[self.frame_index]
 
     def draw_text(surface, text, size, color, x, y):
         font = pygame.font.Font("assets/cyb3.ttf", size)
@@ -352,7 +263,7 @@ def main():
                     elif event.key == pygame.K_RETURN:
                         if selected_item == 0:  # Resume
                             paused = False
-                        elif selected_item == 1:  #Main Menu
+                        elif selected_item == 1:  # Quit
                             import menu
                             menu.main_menu()
                 elif event.type == pygame.MOUSEMOTION:
@@ -373,7 +284,7 @@ def main():
                                 click_sound.play()
                                 if i == 0:  # Resume
                                     paused = False
-                                elif i == 1:  # Main Menu
+                                elif i == 1:  # Quit
                                     import menu
                                     menu.main_menu()
 
@@ -390,72 +301,46 @@ def main():
             pygame.display.flip()
             clock.tick(15)  # Limit the loop to 15 frames per second
 
-    def show_game_over_screen():
-        game_over = True
-        while game_over:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
-                        main()  # Restart the game
-                    elif event.key == pygame.K_ESCAPE:
-                        import menu
-                        menu.main_menu()  # Go back to main menu
+    def draw_health_bar(surface, x, y, percentage):
+        BAR_WIDTH = 200
+        BAR_HEIGHT = 25
+        fill = percentage * BAR_WIDTH / 100
+        border_color = (255, 255, 255)
+        fill_color = (0, 255, 0)
 
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:  # Left mouse button
-                        mouse_x, mouse_y = event.pos
-                        # Check if the restart button is clicked
-                        if 540 <= mouse_x <= 740 and 400 <= mouse_y <= 440:
-                            main()  # Restart the game
-                        elif 540 <= mouse_x <= 740 and 460 <= mouse_y <= 500:
-                            import menu
-                            menu.main_menu()  # Go back to main menu
+        border_rect = pygame.Rect(x, y, BAR_WIDTH, BAR_HEIGHT)
+        fill_rect = pygame.Rect(x, y, fill, BAR_HEIGHT)
 
-            screen.fill((0, 0, 0))  # Fill the screen with black
-            draw_text(screen, 'You Died', 74, (255, 0, 0), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
+        pygame.draw.rect(surface, fill_color, fill_rect)
+        pygame.draw.rect(surface, border_color, border_rect, 2)
 
-            # Draw restart button
-            pygame.draw.rect(screen, (0, 255, 0), (540, 400, 200, 40))  # Restart button
-            pygame.draw.rect(screen, (255, 0, 0), (540, 460, 200, 40))  # Main menu button
-
-            draw_text(screen, 'Restart', 36, (0, 0, 0), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 20)
-            draw_text(screen, 'Restart', 36, (0, 0, 0), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 40)
-
-            pygame.display.flip()
-            clock.tick(15)  # Limit the loop to 15 frames per second
-
+    # Sprite groups
+    mobs = pygame.sprite.Group()
+    bullets = pygame.sprite.Group()
+    all_sprites = pygame.sprite.Group()
+    
     # Create player
     player = Player()
-    
-     # Sprite group for platforms
-    platform_sprites = pygame.sprite.Group()
-    
-    # Create platforms
-    platform1 = Platform(300, SCREEN_HEIGHT - 200, 100, 20)
-    platform2 = Platform(600, SCREEN_HEIGHT - 300, 100, 20)
-    platform_sprites.add(platform1, platform2)
-     
+    all_sprites.add(player)
+
+    # Add mobs to the game
+    mob_positions = [(400, SCREEN_HEIGHT - PLAYER_HEIGHT - 100), (800, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)]
+    for pos in mob_positions:
+        mob = Mob(pos[0], pos[1])
+        all_sprites.add(mob)
+        mobs.add(mob)
+
     # Load the background image
     try:
         background_image = pygame.image.load("assets/Background1.png")
         background_image = pygame.transform.scale(background_image, (WORLD_WIDTH, SCREEN_HEIGHT))
-    except pygame.error:
-        print("Error loading background image. Please check the path.")
+    except pygame.error as e:
+        print(f"Error loading background image: {e}")
         pygame.quit()
         sys.exit()
 
-    # Sprite groups
-    all_sprites = pygame.sprite.Group()
-    all_sprites.add(player)
-
     # Camera position
     camera_x = 0
-    
-    # Create bullet group
-    bullet_group = pygame.sprite.Group()
 
     # Main game loop
     running = True
@@ -468,47 +353,32 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     pause_menu()
-                elif event.key == pygame.K_SPACE:
-                    if player.attack():
-                        for mob in mob_sprites:
-                            if player.rect.colliderect(mob.rect):
-                                mob.decrease_health(10)  # Adjust damage as needed
 
         # Update all sprites
-        all_sprites.update()
-        mob_sprites.update(player, bullet_group)
+        all_sprites.update()  # Pass player object to update mobs
+
+        # Check for bullet collisions with the player
+        hits = pygame.sprite.spritecollide(player, bullets, True)
+        for hit in hits:
+            player.health -= 10  # Reduce player health by 10 on hit
+            if player.health <= 0:
+                running = False  # End the game if health reaches zero
         
-        # Remove killed mobs from sprite group
-        for mob in mob_sprites:
-            if not mob.alive():
-                mob_sprites.remove(mob)
-
-        # Check if player is alive
-        if player.health <= 0:
-            player.game_over()
-
+        # Allow mobs to shoot
+        for mob in mobs:
+            mob.update(player)
+        
         # Scroll the camera with the player
         camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
 
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
-
-        # Draw platforms
-        for platform in platform_sprites:
-            screen.blit(platform.image, platform.rect.topleft - pygame.Vector2(camera_x, 0))
-
-        # Draw sprites
         for sprite in all_sprites:
             screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
-        for mob in mob_sprites:
-            screen.blit(mob.image, mob.rect.topleft - pygame.Vector2(camera_x, 0))
-            mob.draw_health_bar(screen, camera_x)
-        for bullet in bullet_group:
-            screen.blit(bullet.image, bullet.rect.topleft - pygame.Vector2(camera_x, 0))
-        
-        # Draw health bar
-        player.draw_health_bar(screen, 50, 30)
+
+        # Draw the health bar
+        draw_health_bar(screen, 10, 10, player.health)
 
         pygame.display.flip()
         clock.tick(FRAME_RATE)  # Limit the frame rate
