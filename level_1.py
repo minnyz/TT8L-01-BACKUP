@@ -14,6 +14,7 @@ def main():
     jump_sound = pygame.mixer.Sound("assets/jump.wav")
     #running_sound = pygame.mixer.Sound("assets/running.mp3")
     punch_sound = pygame.mixer.Sound("assets/punch.wav")
+    die_sound = pygame.mixer.Sound("assets/die.wav")
     
     # Constants
     SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
@@ -185,6 +186,7 @@ def main():
             self.jump_frames_left = jump_frames_left
             self.punch_frames = punch_frames
             self.punch_frames_left = punch_frames_left 
+            self.death_frames = death_frames
             self.image = self.idle_frames[0]
             self.rect = self.image.get_rect()
             self.rect.x = 100
@@ -296,10 +298,12 @@ def main():
                 self.die()
         
         def die(self):
+            die_sound.play()  # Call the play method correctly
             self.current_frames = death_frames  # Switch to death frames
             self.frame_index = 0  # Reset frame index for death animation
             self.is_dead = True  # Flag to track if player is dead
             self.death_time = pygame.time.get_ticks()  # Record time of death
+
 
         # Wait for 2 seconds before showing game over popup
         pygame.time.set_timer(pygame.USEREVENT, 3000)  # 3000 milliseconds (3 seconds)
@@ -391,11 +395,12 @@ def main():
     # Function to show death popup and handle restart/main menu options
     def show_death_popup():
         pygame.init()
+        die_sound.play()
         screen = pygame.display.set_mode((POPUP_WIDTH, POPUP_HEIGHT),pygame.FULLSCREEN)
         popup_rect = screen.get_rect()
         
         # Larger font size for the "You Died!" text
-        popup_font_large = pygame.font.Font("assets/cyb3.ttf", 60) 
+        popup_font_large = pygame.font.Font("assets/cyb3.ttf", 80) 
         # Regular font size for the options
         popup_font = pygame.font.Font("assets/cyb3.ttf", 40)  
         
@@ -431,10 +436,11 @@ def main():
             popup_text_large = popup_font_large.render("You Died!", True, option_color)
             screen.blit(popup_text_large, (popup_rect.centerx - popup_text_large.get_width() // 2, popup_rect.top + 20))
 
-            # Draw options
+            # Draw options with regular font size, adjusted lower
+            options_start_y = popup_rect.top + 300  # Increase this value to lower the options
             for i, option in enumerate(options):
                 text = popup_font.render(option, True, option_color if i == selected_option else (150, 150, 150))
-                screen.blit(text, (popup_rect.centerx - text.get_width() // 2, popup_rect.top + 100 + i * 50))
+                screen.blit(text, (popup_rect.centerx - text.get_width() // 2, options_start_y + i * 50))
 
             pygame.display.flip()
     
