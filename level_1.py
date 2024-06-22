@@ -56,6 +56,8 @@ def main():
         punch_left_sprite_sheet = pygame.transform.flip(punch_sprite_sheet, True, False)  # Flipped version for punching left
         death_sprite_sheet = pygame.image.load("assets/Mc/mc_death.png").convert_alpha()
         mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Scan.png").convert_alpha()
+        bullet_image = pygame.image.load('assets/mobsLow/1/c4.png').convert_alpha()
+        explosion_image = pygame.image.load('assets/mobsLow/1/kaboom.png').convert_alpha()
     except pygame.error as e:
         print(f"Error loading sprite sheets: {e}")
         pygame.quit()
@@ -70,18 +72,38 @@ def main():
     jump_frames_left = extract_frames(jump_left_sprite_sheet, 48, 48, 4, PLAYER_WIDTH, PLAYER_HEIGHT)
     punch_frames = extract_frames(punch_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
     punch_frames_left = extract_frames(punch_left_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
-    death_frames = extract_frames(death_sprite_sheet, 48, 48, 6, PLAYER_WIDTH, PLAYER_HEIGHT)
+    death_frames = extract_frames(death_sprite_sheet, 48, 48, 6, 10, 10)
     mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 8, 120, 120)  
     
-    # Bullet class
+    # Class Explosion
+    class Explosion(pygame.sprite.Sprite):
+        def __init__(self, center):
+            super().__init__()
+            self.image = explosion_image
+            self.rect = self.image.get_rect()
+            self.rect.center = center  # Set the explosion's center position correctly
+            self.frame_index = 0
+            self.animation_speed = 0.2  # Adjust animation speed as needed
+            self.last_update = pygame.time.get_ticks()
+
+        def update(self):
+            now = pygame.time.get_ticks()
+            if now - self.last_update > 1000 * self.animation_speed:
+                self.last_update = now
+                self.frame_index += 1
+                if self.frame_index >= 2:  # Adjust based on the number of frames in your explosion animation
+                    self.kill()  # Remove the explosion sprite when animation ends
+
+
+    # Class bullet
     class Bullet(pygame.sprite.Sprite):
         def __init__(self, x, y, target_x, target_y):
             super().__init__()
-            self.image = pygame.Surface((10, 10))
-            self.image.fill((0, 255, 0))  # Temporary green color for visibility
+            self.image = bullet_image
             self.rect = self.image.get_rect()
             self.rect.center = (x, y)
-            self.speed = 10
+            self.speed = 4
+            self.explosion_center = self.rect.center  # Correctly set explosion center
 
             # Calculate direction towards the player
             direction = pygame.math.Vector2(target_x - x, target_y - y).normalize()
@@ -95,6 +117,15 @@ def main():
             if self.rect.right < 0 or self.rect.left > WORLD_WIDTH or self.rect.bottom < 0 or self.rect.top > SCREEN_HEIGHT:
                 self.kill()
 
+            # Check for collision with player
+            if pygame.sprite.collide_rect(self, player):
+                # Trigger explosion at bullet's position
+                explosion = Explosion(self.explosion_center)
+                all_sprites.add(explosion)
+                explosions.add(explosion)
+                self.kill()  # Remove the bullet upon impact
+
+    
     # Mobs Class
     class Mob(pygame.sprite.Sprite):
         def __init__(self, x, y):
@@ -361,7 +392,8 @@ def main():
     mobs = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
     all_sprites = pygame.sprite.Group()
-    
+    explosions = pygame.sprite.Group()
+
     # Create player
     player = Player()
     all_sprites.add(player)
@@ -401,7 +433,9 @@ def main():
         
         # Update all sprites
         all_sprites.update()  # Pass player object to update mobsa
-        
+        explosions.update()
+        explosions.draw(screen)
+
         # Check for bullet collisions with the player
         hits = pygame.sprite.spritecollide(player, bullets, True)
         for hit in hits:
