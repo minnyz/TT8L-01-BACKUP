@@ -1,4 +1,5 @@
 import pygame
+import time
 
 pygame.init()
 
@@ -14,6 +15,9 @@ Background = pygame.transform.scale(Background, (SCREEN_WIDTH, SCREEN_HEIGHT))
 intro_font = pygame.font.Font("Assets/cyberpunk_font.ttf", 45)
 detail_font = pygame.font.Font("Assets/cyberpunk_2_font.ttf", 30)
 
+# Load the sound effect
+letter_sound = pygame.mixer.Sound("Assets/letter_sound.wav")
+
 def intro_text(text, font, text_col, x, y):
     img = font.render(text, True, text_col)
     screen.blit(img, (x, y))
@@ -28,11 +32,26 @@ def wrap_text(text, font, max_width):
         lines.append(line)
     return lines
 
-def detail_text(text, font, text_col, x, y, max_width):
+def detail_text(text, font, text_col, x, y, max_width, chars_to_display):
     lines = wrap_text(text, font, max_width)
+    total_chars = 0
     for i, line in enumerate(lines):
+        if total_chars + len(line) > chars_to_display:
+            line = line[:chars_to_display - total_chars]
         img = font.render(line, True, text_col)
         screen.blit(img, (x, y + i * font.get_linesize()))
+        total_chars += len(line)
+        if total_chars >= chars_to_display:
+            break
+
+full_text = ('You are Detective Riley Crane, A top detective in the city of metropolis.'
+            'You are required to take down all of the criminals that are roaming the streets.'
+            'These criminals are armed, so you better be careful. You are free to use excessive force AKA fist/gun.'
+            'Now get out there and save the city.')
+
+chars_displayed = 0
+last_update_time = time.time()
+char_interval = 0.05  # seconds between each character display
 
 run = True
 while run:
@@ -46,19 +65,15 @@ while run:
     # Render the introduction text
     intro_text("Introduction", intro_font, (0, 0, 255), 50, 50)
     
-    # Render the detailed plot text with wrapping
-    detail_text('In the year 2179, the neon-lit mega-city of Echelon is a bustling '
-                'metropolis of towering skyscrapers and hidden dangers. Detective Riley Crane, a former corporate '
-                'security expert turned rogue investigator, is called to investigate the mysterious murder of a high-ranking '
-                'executive from Orion Industries. The crime scene is a baffling mix of ancient symbols and '
-                'disabled high-tech security.'
-                'As Crane delves into the case, he uncovers whispers of an underground movement called "The Veil," '
-                "rumored to be fighting against corporate corruption. Navigating through Echelon's dangerous streets, "
-                'Crane must gather clues, interrogate suspects, and make critical decisions that will shape the outcome of his investigation.'
-                "tep into Crane's shoes and uncover the secrets of "
-                '"Neon Veil." ' 
-                "Explore the city's dark underbelly, solve the mystery, and decide the fate of Echelon."
-                'Welcome to a world where nothing is as it seems. ', detail_font, (255, 0, 255), 50, 150, SCREEN_WIDTH - 100)
+    # Render the detailed plot text with wrapping, displaying only the current number of characters
+    detail_text(full_text, detail_font, (255, 0, 255), 50, 150, SCREEN_WIDTH - 100, chars_displayed)
+    
+    # Update the number of characters displayed based on the time elapsed
+    current_time = time.time()
+    if chars_displayed < len(full_text) and current_time - last_update_time > char_interval:
+        chars_displayed += 1
+        letter_sound.play()
+        last_update_time = current_time
 
     pygame.display.flip()
 
