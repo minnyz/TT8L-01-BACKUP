@@ -1,3 +1,9 @@
+#############################################################################
+#                             START FROM HERE                               #
+#                         --PRESS PLAY TO PLAY--                            #
+#                         GAME TO RELEASE STRESS ?                          # 
+#############################################################################
+
 import pygame
 import sys
 from button import Button
@@ -265,31 +271,57 @@ def video():
             
         pygame.display.update()
 
-#Key Bindings
 def key():
     while True:
-        OPTIONS_MOUSE_POS = pygame.mouse.get_pos()
-        SCREEN.blit(BG, (0, 0))
+            OPTIONS_MOUSE_POS = pygame.mouse.get_pos()
+            SCREEN.blit(BG, (0, 0))
 
-        PLAY_TEXT = get_font_1(100).render("Key Bindings", True, "#b68f40")
-        PLAY_RECT = PLAY_TEXT.get_rect(center=(640, 60))
-        SCREEN.blit(PLAY_TEXT, PLAY_RECT)
+            TITLE_TEXT = get_font_1(100).render("Key Bindings", True, "#b68f40")
+            TITLE_RECT = TITLE_TEXT.get_rect(center=(640, 100))
+            SCREEN.blit(TITLE_TEXT, TITLE_RECT)
 
-        OPTIONS_BACK = Button(image=None, pos=(180, 600), text_input="Back", font=get_font_1(75), base_color="White", hovering_color="Red")
-        for button in [OPTIONS_BACK]:
-            button.changeColor(OPTIONS_MOUSE_POS)
-            button.update(SCREEN)
+            # List of key bindings with descriptions
+            bindings = [
+                ("Move Up", "~~~-Up Arrow"),
+                ("Move Down", "~~~-Down Arrow"),
+                ("Move Left", "~~~-Left Arrow"),
+                ("Move Right", "~~~-Right Arrow"),
+                ("Jump", "~~~-Spacebar"),
+                ("Attack", "~~~-Z"),
+                # Add more bindings as needed
+            ]
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
-                    click_sound.play()
-                    options()
+            # Display the key bindings list
+            y_position = 200
+            line_spacing = 80
+            for binding in bindings:
+                # Render the first part (action) in a different color
+                action_text = get_font_1(30).render(binding[0], True, "#b68f40")
+                action_rect = action_text.get_rect(center=(550, y_position))
+                SCREEN.blit(action_text, action_rect)
 
-        pygame.display.update()
+                # Render the rest (key/button) in white
+                key_text = get_font_1(30).render(f": {binding[1]}", True, "#ffffff")
+                key_rect = key_text.get_rect(midleft=(action_rect.right + 10, y_position))
+                SCREEN.blit(key_text, key_rect)
+
+                y_position += line_spacing
+
+            OPTIONS_BACK = Button(image=None, pos=(180, 600), text_input="Back", font=get_font_1(75), base_color="White", hovering_color="Red")
+            for button in [OPTIONS_BACK]:
+                button.changeColor(OPTIONS_MOUSE_POS)
+                button.update(SCREEN)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if OPTIONS_BACK.checkForInput(OPTIONS_MOUSE_POS):
+                        click_sound.play()
+                        options()  # Replace with your function to return to options menu
+
+            pygame.display.update()
 
 #main menu lobby 
 def main_menu():
@@ -330,3 +362,9 @@ def main_menu():
         pygame.display.update()
 
 main_menu()
+
+#########################################################################
+#                                                                       #
+#                       CREDIT TO ADAM & MUHAIMIN                       #
+#                                                                       #
+##########################################################################
