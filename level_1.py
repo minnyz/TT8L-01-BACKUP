@@ -27,8 +27,8 @@ def main():
     FRAME_RATE = 60
     WORLD_WIDTH = 1600
     PLAYER_MAX_HEALTH = 100
-    PORTAL_WIDTH = 200
-    PORTAL_HEIGHT = 300
+    PORTAL_WIDTH = 300
+    PORTAL_HEIGHT = 400
 
     # Set up the display
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -361,10 +361,10 @@ def main():
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
         surface.blit(text_surface, text_rect)
-
+        
     def pause_menu():
         paused = True
-        menu_items = ["Resume", "Main Menu"]
+        menu_items = ["Resume", "Settings", "Main Menu"]
         selected_item = 0
 
         while paused:
@@ -382,7 +382,10 @@ def main():
                     elif event.key == pygame.K_RETURN:
                         if selected_item == 0:  # Resume
                             paused = False
-                        elif selected_item == 1:  # Quit
+                        elif selected_item == 1:  # settings
+                            import menu
+                            menu.options()      
+                        elif selected_item == 2: # Main Menu
                             import menu
                             menu.main_menu()
                 elif event.type == pygame.MOUSEMOTION:
@@ -403,10 +406,12 @@ def main():
                                 click_sound.play()
                                 if i == 0:  # Resume
                                     paused = False
-                                elif i == 1:  # Quit
+                                elif i == 1: 
+                                    import menu 
+                                    menu.options()
+                                elif i == 2:    
                                     import menu
                                     menu.main_menu()
-
             screen.fill((0, 0, 0))  # Fill the screen with black
             draw_text(screen, 'Paused', 74, (255, 255, 255), SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4)
 
@@ -434,6 +439,13 @@ def main():
         pygame.draw.rect(surface, fill_color, fill_rect)
         pygame.draw.rect(surface, border_color, border_rect, 2)
     
+    try:
+        health_icon = pygame.image.load("assets/dp.png").convert_alpha()
+        health_icon = pygame.transform.scale(health_icon, (120, 120))  # Scale the icon if necessary
+    except pygame.error:
+        print("Error loading health icon. Please check the path.")
+        pygame.quit()
+        sys.exit()
     
     # Function to show death popup and handle restart/main menu options
     def show_death_popup():
@@ -487,6 +499,59 @@ def main():
 
             pygame.display.flip()
     
+    def show_winning_popup():
+        pygame.init()
+        click_sound.play()  # Play a sound effect
+        
+        # Create a new fullscreen window for the popup
+        screen = pygame.display.set_mode((POPUP_WIDTH, POPUP_HEIGHT), pygame.FULLSCREEN)
+        popup_rect = screen.get_rect()
+
+        # Larger font size for the "You Won!" text
+        popup_font_large = pygame.font.Font("assets/cyb3.ttf", 80) 
+        # Regular font size for the options
+        popup_font = pygame.font.Font("assets/cyb3.ttf", 40)  
+        
+        popup_color = pygame.Color(50, 50, 50, 150)
+        option_color = (0, 255, 0)  # Green color for options
+        options = ["Restart", "Main Menu"]
+        selected_option = 0
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        selected_option = (selected_option - 1) % len(options)
+                    elif event.key == pygame.K_DOWN:
+                        selected_option = (selected_option + 1) % len(options)
+                    elif event.key == pygame.K_RETURN:
+                        click_sound.play()
+                        if selected_option == 0:  # Restart
+                            main()  # Restart the game
+                        elif selected_option == 1:  # Main Menu
+                            import menu
+                            menu.main_menu()  # Go back to main menu
+
+            # Draw popup background
+            popup_surface = pygame.Surface((popup_rect.width, popup_rect.height), pygame.SRCALPHA)  # Create a surface with alpha channel
+            popup_surface.fill(popup_color)  # Fill the surface with the transparent gray color
+            screen.blit(popup_surface, (0,0))  # Blit the popup surface onto the screen
+
+            # Draw popup text
+            popup_text_large = popup_font_large.render("You Won!", True, option_color)
+            screen.blit(popup_text_large, (popup_rect.centerx - popup_text_large.get_width() // 2, popup_rect.top + 20))
+
+            # Draw options with regular font size, adjusted lower
+            options_start_y = popup_rect.top + 300  # Increase this value to lower the options
+            for i, option in enumerate(options):
+                text = popup_font.render(option, True, option_color if i == selected_option else (150, 150, 150))
+                screen.blit(text, (popup_rect.centerx - text.get_width() // 2, options_start_y + i * 50))
+
+            pygame.display.flip()
+
     # Sprite groups
     mobs = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
@@ -565,7 +630,11 @@ def main():
         
         # Scroll the camera with the player
         camera_x = max(0, min(player.rect.centerx - SCREEN_WIDTH // 2, WORLD_WIDTH - SCREEN_WIDTH))
-
+        
+        # Check if all mobs are dead to trigger winning popup
+        if len(mobs) == 0:
+            show_winning_popup()
+        
         # Draw everything
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
@@ -579,7 +648,8 @@ def main():
             mob.draw_health_bar(screen)
         
         # Draw the health bar for players
-        draw_health_bar(screen, 10, 10, player.health)
+        draw_health_bar(screen, 130, 30, player.health)
+        screen.blit(health_icon, (10, 10)) 
 
         pygame.display.flip()
         clock.tick(FRAME_RATE)  # Limit the frame rate
