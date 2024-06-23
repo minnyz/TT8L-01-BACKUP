@@ -65,6 +65,9 @@ def main():
         mob_sprite_sheet = pygame.image.load("assets/mobsLow/1/Scan.png").convert_alpha()
         bullet_image = pygame.image.load('assets/mobsLow/1/c4.png').convert_alpha()
         mob_death_sprite_sheet = pygame.image.load("assets/mobsLow/1/Death.png").convert_alpha()
+        boss_sprite_sheet = pygame.image.load("assets/mobsHigh/Idle.png").convert_alpha()
+        boss_death_sprite_sheet = pygame.image.load("assets/mobsHigh/Death.png").convert_alpha()
+        boss_attack_sprite_sheet = pygame.image.load("assets/mobsHigh/Attack2.png").convert_alpha()
     except pygame.error as e:
         print(f"Error loading sprite sheets: {e}")
         pygame.quit()
@@ -82,7 +85,96 @@ def main():
     death_frames = extract_frames(death_sprite_sheet, 48, 48, 6, 10, 10)
     mob_frames = extract_frames(mob_sprite_sheet, 48, 48, 8, 120, 120) 
     mob_death_frames = extract_frames(mob_death_sprite_sheet, 48, 48, 8, 120, 120)  
- 
+    boss_idle_frames = extract_frames(boss_sprite_sheet, 72, 72, 4, 100, 100)
+    boss_death_frames = extract_frames(boss_death_sprite_sheet, 72, 72, 6, 100, 100)
+    boss_attack_frames = extract_frames(boss_attack_sprite_sheet, 72, 72, 6, 100, 100)
+    
+    # Boss Class
+    class Boss(pygame.sprite.Sprite):
+        def __init__(self, x, y):
+            super().__init__()
+            self.idle_frames = boss_idle_frames  # Replace with actual frames
+            self.attack_frames = boss_attack_frames  # Replace with actual frames
+            self.death_frames = boss_death_frames  # Replace with actual frames
+            self.image = self.idle_frames[0]
+            self.rect = self.image.get_rect()
+            self.rect.topleft = (x, y)
+            self.attack_distance = 300  # Example distance at which boss starts attacking
+            self.attack_delay = 3000  # Example delay between attacks in milliseconds
+            self.last_attack = pygame.time.get_ticks()
+            self.last_update = pygame.time.get_ticks()
+            self.velocity = pygame.math.Vector2(0, 0)  # Adjust if boss moves
+            self.frame_index = 0
+            self.animation_speed = 0.1
+            self.health = 200  # Example boss health
+            self.is_dead = False
+            self.death_time = 0
+
+        def update(self, player):
+            if self.is_dead:
+                # Handle death animation
+                now = pygame.time.get_ticks()
+                if now - self.last_update > 1000 * self.animation_speed:
+                    self.last_update = now
+                    self.frame_index += 1
+                    if self.frame_index < len(self.death_frames):
+                        self.image = self.death_frames[self.frame_index]
+                    else:
+                        self.kill()  # Remove the boss after death animation finishes
+                return
+            
+            # Example: Boss attacks player within a certain distance
+            if abs(self.rect.centerx - player.rect.centerx) < self.attack_distance:
+                self.shoot(player)
+
+            # Example: Update animation
+            now = pygame.time.get_ticks()
+            if now - self.last_update > 1000 * self.animation_speed:
+                self.last_update = now
+                self.frame_index += 1
+                if self.frame_index >= len(self.idle_frames):
+                    self.frame_index = 0
+                self.image = self.idle_frames[self.frame_index]
+
+        def shoot(self, player):
+            now = pygame.time.get_ticks()
+            if now - self.last_attack > self.attack_delay:
+                self.last_attack = now
+                # Implement shooting logic towards the player
+                pass  # Placeholder for shooting logic
+
+        def take_damage(self, damage):
+            self.health -= damage
+            if self.health <= 0:
+                self.die()
+
+        def die(self):
+            if not self.is_dead:
+                self.is_dead = True
+                self.death_time = pygame.time.get_ticks()
+                self.frame_index = 0
+                self.last_update = pygame.time.get_ticks()
+                self.image = self.death_frames[self.frame_index]
+                # Add sound or any other effects on boss death
+                self.kill()  # Remove the boss after death animation finishes
+
+        def draw_health_bar(self, surface):
+            if not self.is_dead:
+                BAR_WIDTH = 200
+                BAR_HEIGHT = 25
+                fill = BAR_WIDTH * (self.health / 500)  # Adjust as per boss's max health
+                border_color = (255, 255, 255)
+                fill_color = (0, 255, 0)
+
+                health_bar_x = self.rect.centerx - BAR_WIDTH // 2
+                health_bar_y = self.rect.top - 10
+
+                border_rect = pygame.Rect(health_bar_x, health_bar_y, BAR_WIDTH, BAR_HEIGHT)
+                fill_rect = pygame.Rect(health_bar_x, health_bar_y, fill, BAR_HEIGHT)
+
+                pygame.draw.rect(surface, fill_color, fill_rect)
+                pygame.draw.rect(surface, border_color, border_rect, 2)
+
     # Bullet class
     class Bullet(pygame.sprite.Sprite):
         def __init__(self, x, y, target_x, target_y):
@@ -104,6 +196,7 @@ def main():
             if self.rect.right < 0 or self.rect.left > WORLD_WIDTH or self.rect.bottom < 0 or self.rect.top > SCREEN_HEIGHT:
                 self.kill()
 
+    # Class Mob
     class Mob(pygame.sprite.Sprite):
         def __init__(self, x, y):
             super().__init__()
@@ -127,6 +220,7 @@ def main():
         def update(self, *args):
             if self.is_dead:
                 # Handle death animation
+                print(f"Death animation: frame_index={self.frame_index}, len(death_frames)={len(self.death_frames)}")
                 now = pygame.time.get_ticks()
                 if now - self.last_update > 1000 * self.animation_speed:
                     self.last_update = now
@@ -134,6 +228,7 @@ def main():
                     if self.frame_index < len(self.death_frames):
                         self.image = self.death_frames[self.frame_index]
                     else:
+                        print("Removing mob after death animation.")
                         self.kill()  # Remove the mob after the death animation finishes
                 return
 
@@ -174,12 +269,13 @@ def main():
                 self.die()  # Switch to die method when health drops to zero
 
         def die(self):
-            self.is_dead = True  # Flag to indicate the mob is dead
-            self.death_time = pygame.time.get_ticks()  # Record the time of death
-            self.frame_index = 0  # Reset frame index for death animation
-            self.last_update = pygame.time.get_ticks()  # Reset the last update time for death animation
-            self.image = self.death_frames[self.frame_index]  # Start with the first death frame
-            self.mobs_died_sound.play() 
+            if not self.is_dead:
+                self.is_dead = True  # Flag to indicate the mob is dead
+                self.death_time = pygame.time.get_ticks()  # Record the time of death
+                self.frame_index = 0  # Reset frame index for death animation
+                self.last_update = pygame.time.get_ticks()  # Reset the last update time for death animation
+                self.image = self.death_frames[self.frame_index]  # Start with the first death frame
+                self.mobs_died_sound.play() 
             
         def draw_health_bar(self, surface):
             if not self.is_dead:  # Only draw health bar if the mob is not dead
@@ -485,7 +581,12 @@ def main():
         mob = Mob(pos[0], pos[1])
         all_sprites.add(mob)
         mobs.add(mob)
-
+    
+    # Add boss to the game
+    boss = Boss(1200, SCREEN_HEIGHT - PLAYER_HEIGHT - 100)  # Example position
+    all_sprites.add(boss)
+    mobs.add(boss)
+    
     # Load the background image
     try:
         background_image = pygame.image.load("assets/Background1.png")
@@ -515,7 +616,11 @@ def main():
             player.handle_event(event)
         
         # Update all sprites
-        all_sprites.update()  # Pass player object to update mobsa
+        for sprite in all_sprites:
+            if isinstance(sprite, Boss):
+                sprite.update(player)
+            else:
+                sprite.update()  # Pass player object to update mobsa
         
         # Check for bullet collisions with the player
         hits = pygame.sprite.spritecollide(player, bullets, True)
@@ -528,11 +633,7 @@ def main():
         # Allow mobs to shoot
         for mob in mobs:
             mob.update(player)
-            
-        # Draw health bars for mobs
-        for mob in mobs:
-            mob.draw_health_bar(screen)
-
+        
         # Check mob health and remove dead mobs
         for mob in mobs.copy():  
             if mob.health <= 0:
@@ -545,17 +646,33 @@ def main():
         screen.fill((0, 0, 0))  # Clear the screen
         screen.blit(background_image, (0 - camera_x, 0))  # Draw background
         
-        # Draw all spzrites
+        # Draw all sprites
         for sprite in all_sprites:
-            screen.blit(sprite.image, sprite.rect.topleft - pygame.Vector2(camera_x, 0))
+            screen.blit(sprite.image, (sprite.rect.x - camera_x, sprite.rect.y))
+            if isinstance(sprite, Mob):
+                sprite.draw_health_bar(screen)
+            elif isinstance(sprite, Boss):
+                sprite.draw_health_bar(screen)
+        
+        # Draw boss
+        screen.blit(boss.image, boss.rect)
+        
+        # Check boss health and remove if dead
+        if boss.health <= 0:
+            boss.kill()
         
         # Draw health bars for mobs
         for mob in mobs:
             mob.draw_health_bar(screen)
         
-        # Draw the health bar for players
-        draw_health_bar(screen, 10, 10, player.health)
+        # Draw health bars
+        for entity in all_sprites:
+            if isinstance(entity, Player):
+                draw_health_bar(screen, 10, 10, entity.health / PLAYER_MAX_HEALTH)
+            elif isinstance(entity, Mob) or isinstance(entity, Boss):
+                entity.draw_health_bar(screen)
 
+        pygame.display.flip()
         pygame.display.flip()
         clock.tick(FRAME_RATE)  # Limit the frame rate
 
