@@ -447,6 +447,9 @@ def main():
         pygame.quit()
         sys.exit()
     
+    # Define the player's name
+    player_name = "Detective Riley Crane"
+    
     # Function to show death popup and handle restart/main menu options
     def show_death_popup():
         pygame.init()
@@ -647,10 +650,11 @@ def main():
         for mob in mobs:
             mob.draw_health_bar(screen)
         
-        # Draw the health bar for players
-        draw_health_bar(screen, 130, 30, player.health)
+        # Draw the health bar, picture and name  for players
+        draw_health_bar(screen, 130, 60, player.health)
         screen.blit(health_icon, (10, 10)) 
-
+        draw_text(screen, player_name, 26, (0,0,0), 285, 25)
+        
         pygame.display.flip()
         clock.tick(FRAME_RATE)  # Limit the frame rate
 
