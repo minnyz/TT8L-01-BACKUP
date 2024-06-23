@@ -665,14 +665,12 @@ def main():
         for mob in mobs:
             mob.draw_health_bar(screen)
         
-        # Draw health bars
-        for entity in all_sprites:
-            if isinstance(entity, Player):
-                draw_health_bar(screen, 10, 10, entity.health / PLAYER_MAX_HEALTH)
-            elif isinstance(entity, Mob) or isinstance(entity, Boss):
-                entity.draw_health_bar(screen)
-
-        pygame.display.flip()
+        # Draw the health bar for players
+        draw_health_bar(screen, 10, 10, player.health)
+        
+        # Draw health bar for boss
+        boss.draw_health_bar(screen)
+        
         pygame.display.flip()
         clock.tick(FRAME_RATE)  # Limit the frame rate
 
